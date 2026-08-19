@@ -24,6 +24,8 @@ beforeEach(async () => {
 
 const openWeight = async () => {
   await render(<App />);
+  await waitFor(() => expect(screen.getAllByText('Summary').length).toBeGreaterThan(0));
+  await fireEvent.press(screen.getAllByText('Log')[0]);
   await waitFor(() => expect(screen.getByText('New reading')).toBeTruthy());
   await fireEvent.press(screen.getAllByText('Weight')[0]);
   await waitFor(() => expect(screen.getByText('New weight')).toBeTruthy());
@@ -40,6 +42,8 @@ const logWeight = async (stones: string, pounds?: string) => {
 describe('logging a weight', () => {
   it('starts from the blood pressure form and switches to weight', async () => {
     await render(<App />);
+    await waitFor(() => expect(screen.getAllByText('Summary').length).toBeGreaterThan(0));
+    await fireEvent.press(screen.getAllByText('Log')[0]);
     await waitFor(() => expect(screen.getByText('New reading')).toBeTruthy());
 
     await fireEvent.press(screen.getAllByText('Weight')[0]);

@@ -19,14 +19,14 @@ describe('where reminders are unsupported', () => {
   it('still opens the app', async () => {
     await render(<App />);
 
-    await waitFor(() => expect(screen.getByText('New reading')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText('Summary').length).toBeGreaterThan(0));
   });
 
   it('explains that Expo Go on Android cannot schedule reminders', async () => {
     await render(<App />);
-    await waitFor(() => expect(screen.getByText('New reading')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText('Summary').length).toBeGreaterThan(0));
 
-    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent.press(screen.getAllByText('Settings')[0]);
 
     expect(
       screen.getByText(/Expo Go on Android cannot schedule notifications/),
@@ -35,9 +35,9 @@ describe('where reminders are unsupported', () => {
 
   it('does not claim a reminder is set in the header', async () => {
     await render(<App />);
-    await waitFor(() => expect(screen.getByText('New reading')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText('Summary').length).toBeGreaterThan(0));
 
-    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent.press(screen.getAllByText('Settings')[0]);
     await fireEvent(screen.getByLabelText('Daily reminder'), 'valueChange', true);
 
     await waitFor(() => expect(scheduleReminder).toHaveBeenCalledWith('bp', expect.anything()));

@@ -65,7 +65,7 @@ import {
   weightChange,
 } from './src/weight';
 
-type Tab = 'log' | 'trends' | 'settings';
+type Tab = 'summary' | 'log' | 'trends' | 'settings';
 type Metric = 'bp' | 'weight';
 type ReminderProblem = 'denied' | 'unsupported' | null;
 
@@ -85,7 +85,7 @@ export default function App() {
   const [weights, setWeights] = useState<WeightEntry[]>([]);
   const [weightUnit, setWeightUnit] = useState<WeightUnit>(defaultWeightUnit);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>('log');
+  const [tab, setTab] = useState<Tab>('summary');
   const [metric, setMetric] = useState<Metric>('bp');
   const [range, setRange] = useState<Range>(30);
 
@@ -264,23 +264,32 @@ export default function App() {
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.appTitle}>
-              {metric === 'bp' ? 'Blood pressure' : 'Weight'}
-            </Text>
-            <Text style={styles.appSubtitle}>
-              {metric === 'bp'
-                ? latest
-                  ? `Last reading ${formatWhen(latest.takenAt).toLowerCase()}`
-                  : 'Log your first reading below'
-                : latestWeight
-                  ? `Last weight ${formatWhen(latestWeight.takenAt).toLowerCase()}`
-                  : 'Log your first weight below'}
-              {metric === 'bp' && reminder.enabled && reminderProblem == null
-                ? ` · reminder ${formatClock(reminder.hour, reminder.minute)}`
-                : ''}
-            </Text>
+            {tab === 'summary' ? (
+              <>
+                <Text style={styles.appTitle}>Summary</Text>
+                <Text style={styles.appSubtitle}>Overview of your health metrics</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.appTitle}>
+                  {metric === 'bp' ? 'Blood pressure' : 'Weight'}
+                </Text>
+                <Text style={styles.appSubtitle}>
+                  {metric === 'bp'
+                    ? latest
+                      ? `Last reading ${formatWhen(latest.takenAt).toLowerCase()}`
+                      : 'Log your first reading below'
+                    : latestWeight
+                      ? `Last weight ${formatWhen(latestWeight.takenAt).toLowerCase()}`
+                      : 'Log your first weight below'}
+                  {metric === 'bp' && reminder.enabled && reminderProblem == null
+                    ? ` · reminder ${formatClock(reminder.hour, reminder.minute)}`
+                    : ''}
+                </Text>
+              </>
+            )}
 
-            {tab !== 'settings' && (
+            {tab !== 'settings' && tab !== 'summary' && (
               <View style={styles.rangeRow}>
                 {(
                   [
@@ -303,6 +312,116 @@ export default function App() {
                   </TouchableOpacity>
                 ))}
               </View>
+            )}
+
+            {tab === 'summary' && (
+              <>
+                <View style={styles.averageGrid}>
+                  <GridPanel
+                    label="Systolic Avg"
+                    value={average == null ? '—' : `${average.systolic}`}
+                    unit="mmHg"
+                    color={colors.systolic}
+                  />
+                  <GridPanel
+                    label="Diastolic Avg"
+                    value={average == null ? '—' : `${average.diastolic}`}
+                    unit="mmHg"
+                    color={colors.diastolic}
+                  />
+                  <GridPanel
+                    label="Heart Rate Avg"
+                    value={average?.heartRate == null ? '—' : `${average.heartRate}`}
+                    unit="bpm"
+                    color={colors.pulse}
+                  />
+                  <GridPanel
+                    label="Average Weight"
+                    value={weightAverage == null ? '—' : formatWeight(weightAverage, weightUnit)}
+                    unit={unitLabel(weightUnit)}
+                    color={colors.weight}
+                  />
+                  <GridPanel
+                    label="Weight Change"
+                    value={weightDelta == null ? '—' : formatWeightDelta(weightDelta, weightUnit)}
+                    unit="this period"
+                    color={
+                      weightDelta == null
+                        ? colors.muted
+                        : weightDelta < 0
+                          ? colors.accent
+                          : weightDelta > 0
+                            ? colors.danger
+                            : colors.muted
+                    }
+                  />
+                  <GridPanel
+                    label="Weigh-ins Logged"
+                    value={`${weightsInRange.length}`}
+                    unit={`weigh-in${weightsInRange.length === 1 ? '' : 's'}`}
+                    color={colors.accent}
+                  />
+                </View>
+
+                <Text style={styles.sectionTitle}>Latest Readings</Text>
+                
+                {latest ? (
+                  <LatestCard reading={latest} />
+                ) : (
+                  <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Latest Blood Pressure</Text>
+                    <Text style={styles.tip}>No blood pressure readings logged yet.</Text>
+                  </View>
+                )}
+
+                {latestWeight ? (
+                  <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Latest Weight</Text>
+                    <View style={styles.heroRow}>
+                      <Text style={styles.heroWeight}>
+                        {formatWeight(latestWeight.grams, weightUnit)}
+                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.heroMeta}>
+                          {formatWhen(latestWeight.takenAt)}
+                        </Text>
+                        {weightDelta != null && (
+                          <Text style={styles.heroMeta}>
+                            {formatWeightDelta(weightDelta, weightUnit)} over this period
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Latest Weight</Text>
+                    <Text style={styles.tip}>No weight records logged yet.</Text>
+                  </View>
+                )}
+
+                <Text style={styles.sectionTitle}>Quick Actions</Text>
+                <View style={styles.quickActionRow}>
+                  <TouchableOpacity
+                    style={styles.quickActionButton}
+                    onPress={() => {
+                      setTab('log');
+                      setMetric('bp');
+                    }}
+                  >
+                    <Text style={styles.quickActionText}>Log Blood Pressure</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.quickActionButton}
+                    onPress={() => {
+                      setTab('log');
+                      setMetric('weight');
+                    }}
+                  >
+                    <Text style={styles.quickActionText}>Log Weight</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
             )}
 
             {tab === 'log' && metric === 'bp' && (
@@ -521,6 +640,7 @@ export default function App() {
           <View style={styles.tabBar}>
             {(
               [
+                ['summary', 'Summary'],
                 ['log', 'Log'],
                 ['trends', 'Trends'],
                 ['settings', 'Settings'],
@@ -813,5 +933,27 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.muted,
     marginTop: 2,
+  },
+  quickActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  quickActionButton: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.accent,
   },
 });
