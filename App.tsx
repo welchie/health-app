@@ -310,10 +310,12 @@ export default function App() {
                 <ReadingForm onSave={addReading} />
                 {latest && <LatestCard reading={latest} />}
                 {average && (
-                  <SummaryCard
-                    title={`Average of your last ${average.count} reading${average.count === 1 ? '' : 's'}`}
-                    average={average}
-                  />
+                  <>
+                    <Text style={styles.sectionTitle}>
+                      {`Average of your last ${average.count} reading${average.count === 1 ? '' : 's'}`}
+                    </Text>
+                    <BloodPressureGrid average={average} />
+                  </>
                 )}
               </>
             )}
@@ -344,6 +346,18 @@ export default function App() {
                       </View>
                     </View>
                   </View>
+                )}
+                {weightAverage != null && (
+                  <>
+                    <Text style={styles.sectionTitle}>Average over this period</Text>
+                    <WeightGrid
+                      average={weightAverage}
+                      delta={weightDelta}
+                      unit={weightUnit}
+                      count={weightsInRange.length}
+                      latestGrams={latestWeight?.grams ?? null}
+                    />
+                  </>
                 )}
               </>
             )}
@@ -392,7 +406,12 @@ export default function App() {
                   />
                 </View>
 
-                {average && <SummaryCard title="Average over this period" average={average} />}
+                {average && (
+                  <>
+                    <Text style={styles.sectionTitle}>Average over this period</Text>
+                    <BloodPressureGrid average={average} />
+                  </>
+                )}
 
                 <Text style={styles.sectionTitle}>History</Text>
                 <ReadingList readings={inRange} onDelete={deleteReading} />
@@ -417,27 +436,16 @@ export default function App() {
                 </View>
 
                 {weightAverage != null && (
-                  <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Over this period</Text>
-                    <View style={styles.statRow}>
-                      <Stat
-                        label="Average"
-                        value={formatWeight(weightAverage, weightUnit)}
-                        unit={`${weightsInRange.length} weigh-in${weightsInRange.length === 1 ? '' : 's'}`}
-                        color={colors.weight}
-                      />
-                      <Stat
-                        label="Change"
-                        value={
-                          weightDelta == null
-                            ? '—'
-                            : formatWeightDelta(weightDelta, weightUnit)
-                        }
-                        unit={weightDelta == null ? 'needs two weigh-ins' : 'first to last'}
-                        color={colors.weight}
-                      />
-                    </View>
-                  </View>
+                  <>
+                    <Text style={styles.sectionTitle}>Average over this period</Text>
+                    <WeightGrid
+                      average={weightAverage}
+                      delta={weightDelta}
+                      unit={weightUnit}
+                      count={weightsInRange.length}
+                      latestGrams={latestWeight?.grams ?? null}
+                    />
+                  </>
                 )}
 
                 <Text style={styles.sectionTitle}>History</Text>
@@ -564,26 +572,112 @@ function LatestCard({ reading }: { reading: Reading }) {
   );
 }
 
-function SummaryCard({
-  title,
-  average,
+function GridPanel({
+  label,
+  value,
+  unit,
+  color,
 }: {
-  title: string;
-  average: { systolic: number; diastolic: number; heartRate: number | null };
+  label: string;
+  value: string;
+  unit: string;
+  color: string;
 }) {
   return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>{title}</Text>
-      <View style={styles.statRow}>
-        <Stat label="Systolic" value={`${average.systolic}`} unit="mmHg" color={colors.systolic} />
-        <Stat label="Diastolic" value={`${average.diastolic}`} unit="mmHg" color={colors.diastolic} />
-        <Stat
-          label="Heart rate"
-          value={average.heartRate == null ? '—' : `${average.heartRate}`}
-          unit="bpm"
-          color={colors.pulse}
-        />
+    <View style={styles.gridPanel}>
+      <View style={styles.panelLabelRow}>
+        <View style={[styles.panelSwatch, { backgroundColor: color }]} />
+        <Text style={styles.panelLabel}>{label}</Text>
       </View>
+      <Text style={styles.panelValue}>{value}</Text>
+      <Text style={styles.panelUnit}>{unit}</Text>
+    </View>
+  );
+}
+
+function BloodPressureGrid({
+  average,
+}: {
+  average: { systolic: number; diastolic: number; heartRate: number | null; count: number };
+}) {
+  return (
+    <View style={styles.averageGrid}>
+      <GridPanel
+        label="Systolic Avg"
+        value={`${average.systolic}`}
+        unit="mmHg"
+        color={colors.systolic}
+      />
+      <GridPanel
+        label="Diastolic Avg"
+        value={`${average.diastolic}`}
+        unit="mmHg"
+        color={colors.diastolic}
+      />
+      <GridPanel
+        label="Heart Rate Avg"
+        value={average.heartRate == null ? '—' : `${average.heartRate}`}
+        unit="bpm"
+        color={colors.pulse}
+      />
+      <GridPanel
+        label="Readings Logged"
+        value={`${average.count}`}
+        unit={`reading${average.count === 1 ? '' : 's'}`}
+        color={colors.accent}
+      />
+    </View>
+  );
+}
+
+function WeightGrid({
+  average,
+  delta,
+  unit,
+  count,
+  latestGrams,
+}: {
+  average: number | null;
+  delta: number | null;
+  unit: WeightUnit;
+  count: number;
+  latestGrams: number | null;
+}) {
+  const deltaColor =
+    delta == null
+      ? colors.muted
+      : delta < 0
+        ? colors.accent
+        : delta > 0
+          ? colors.danger
+          : colors.muted;
+
+  return (
+    <View style={styles.averageGrid}>
+      <GridPanel
+        label="Average Weight"
+        value={average == null ? '—' : formatWeight(average, unit)}
+        unit={unitLabel(unit)}
+        color={colors.weight}
+      />
+      <GridPanel
+        label="Weight Change"
+        value={delta == null ? '—' : formatWeightDelta(delta, unit)}
+        unit="this period"
+        color={deltaColor}
+      />
+      <GridPanel
+        label="Weigh-ins Logged"
+        value={`${count}`}
+        unit={`weigh-in${count === 1 ? '' : 's'}`}
+        color={colors.accent}
+      />
+      <GridPanel
+        label="Latest Weight"
+        value={latestGrams == null ? '—' : formatWeight(latestGrams, unit)}
+        unit={unitLabel(unit)}
+        color={colors.weight}
+      />
     </View>
   );
 }
@@ -675,5 +769,49 @@ const styles = StyleSheet.create({
     width: 40,
     backgroundColor: colors.accent,
     borderRadius: 2,
+  },
+  averageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  gridPanel: {
+    width: '48%',
+    minWidth: 140,
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexGrow: 1,
+  },
+  panelLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  panelSwatch: {
+    width: 6,
+    height: 6,
+    borderRadius: 2,
+  },
+  panelLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.muted,
+  },
+  panelValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  panelUnit: {
+    fontSize: 10,
+    color: colors.muted,
+    marginTop: 2,
   },
 });
