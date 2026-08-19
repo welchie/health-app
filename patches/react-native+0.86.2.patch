@@ -1,0 +1,86 @@
+diff --git a/node_modules/react-native/src/private/components/virtualview/VirtualViewExperimentalNativeComponent.js b/node_modules/react-native/src/private/components/virtualview/VirtualViewExperimentalNativeComponent.js
+index c640b5a..651ae80 100644
+--- a/node_modules/react-native/src/private/components/virtualview/VirtualViewExperimentalNativeComponent.js
++++ b/node_modules/react-native/src/private/components/virtualview/VirtualViewExperimentalNativeComponent.js
+@@ -18,7 +18,7 @@ import type {HostComponent} from '../../types/HostComponent';
+ 
+ import codegenNativeComponent from '../../../../Libraries/Utilities/codegenNativeComponent';
+ 
+-export type NativeModeChangeEvent = Readonly<{
++export type NativeModeChangeEvent = $ReadOnly<{
+   /**
+    * Virtualization mode of the target view.
+    *
+@@ -34,12 +34,12 @@ export type NativeModeChangeEvent = Readonly<{
+   /**
+    * Rect of the target view, relative to the nearest ancestor scroll container.
+    */
+-  targetRect: Readonly<{
++  targetRect: {
+     x: Double,
+     y: Double,
+     width: Double,
+     height: Double,
+-  }>,
++  },
+ 
+   /**
+    * Rect of the threshold that determines the mode of the target view, relative
+@@ -51,12 +51,12 @@ export type NativeModeChangeEvent = Readonly<{
+    *
+    * This can be used to determine whether and how much new content to render.
+    */
+-  thresholdRect: Readonly<{
++  thresholdRect: {
+     x: Double,
+     y: Double,
+     width: Double,
+     height: Double,
+-  }>,
++  },
+ }>;
+ 
+ type VirtualViewExperimentalNativeProps = Readonly<{
+diff --git a/node_modules/react-native/src/private/components/virtualview/VirtualViewNativeComponent.js b/node_modules/react-native/src/private/components/virtualview/VirtualViewNativeComponent.js
+index 4ba5b68..fa5d23a 100644
+--- a/node_modules/react-native/src/private/components/virtualview/VirtualViewNativeComponent.js
++++ b/node_modules/react-native/src/private/components/virtualview/VirtualViewNativeComponent.js
+@@ -18,7 +18,7 @@ import type {HostComponent} from '../../types/HostComponent';
+ 
+ import codegenNativeComponent from '../../../../Libraries/Utilities/codegenNativeComponent';
+ 
+-export type NativeModeChangeEvent = Readonly<{
++export type NativeModeChangeEvent = $ReadOnly<{
+   /**
+    * Virtualization mode of the target view.
+    *
+@@ -34,12 +34,12 @@ export type NativeModeChangeEvent = Readonly<{
+   /**
+    * Rect of the target view, relative to the nearest ancestor scroll container.
+    */
+-  targetRect: Readonly<{
++  targetRect: {
+     x: Double,
+     y: Double,
+     width: Double,
+     height: Double,
+-  }>,
++  },
+ 
+   /**
+    * Rect of the threshold that determines the mode of the target view, relative
+@@ -51,12 +51,12 @@ export type NativeModeChangeEvent = Readonly<{
+    *
+    * This can be used to determine whether and how much new content to render.
+    */
+-  thresholdRect: Readonly<{
++  thresholdRect: {
+     x: Double,
+     y: Double,
+     width: Double,
+     height: Double,
+-  }>,
++  },
+ }>;
+ 
+ type VirtualViewNativeProps = Readonly<{
