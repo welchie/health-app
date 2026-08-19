@@ -38,12 +38,12 @@ describe('reading storage', () => {
   });
 
   it('survives corrupted storage instead of throwing', async () => {
-    await AsyncStorage.setItem('bp-tracker/readings/v1', '{not json');
+    await AsyncStorage.setItem('health-app/readings/v1', '{not json');
     await expect(loadReadings()).resolves.toEqual([]);
   });
 
   it('ignores stored values that are not a list', async () => {
-    await AsyncStorage.setItem('bp-tracker/readings/v1', '{"systolic":120}');
+    await AsyncStorage.setItem('health-app/readings/v1', '{"systolic":120}');
     await expect(loadReadings()).resolves.toEqual([]);
   });
 });
@@ -59,7 +59,7 @@ describe('reminder storage', () => {
   });
 
   it('fills in missing fields from the default', async () => {
-    await AsyncStorage.setItem('bp-tracker/reminder/v1', '{"enabled":true}');
+    await AsyncStorage.setItem('health-app/reminder/v1', '{"enabled":true}');
     await expect(loadReminder()).resolves.toEqual({
       ...defaultReminder,
       enabled: true,
@@ -67,7 +67,7 @@ describe('reminder storage', () => {
   });
 
   it('survives corrupted reminder storage', async () => {
-    await AsyncStorage.setItem('bp-tracker/reminder/v1', 'nope');
+    await AsyncStorage.setItem('health-app/reminder/v1', 'nope');
     await expect(loadReminder()).resolves.toEqual(defaultReminder);
   });
 });
@@ -87,12 +87,12 @@ describe('weight storage', () => {
   });
 
   it('survives corrupted storage instead of throwing', async () => {
-    await AsyncStorage.setItem('bp-tracker/weights/v1', '{not json');
+    await AsyncStorage.setItem('health-app/weights/v1', '{not json');
     await expect(loadWeights()).resolves.toEqual([]);
   });
 
   it('ignores stored values that are not a list', async () => {
-    await AsyncStorage.setItem('bp-tracker/weights/v1', '{"grams":81193}');
+    await AsyncStorage.setItem('health-app/weights/v1', '{"grams":81193}');
     await expect(loadWeights()).resolves.toEqual([]);
   });
 
@@ -116,7 +116,7 @@ describe('weight unit preference', () => {
   });
 
   it('falls back to the default for an unrecognised value', async () => {
-    await AsyncStorage.setItem('bp-tracker/units/v1', 'pounds-only');
+    await AsyncStorage.setItem('health-app/units/v1', 'pounds-only');
     await expect(loadWeightUnit()).resolves.toBe('st_lb');
   });
 });
@@ -146,7 +146,7 @@ describe('weight reminder storage', () => {
   });
 
   it('fills in missing fields from the default', async () => {
-    await AsyncStorage.setItem('bp-tracker/weight-reminder/v1', '{"enabled":true}');
+    await AsyncStorage.setItem('health-app/weight-reminder/v1', '{"enabled":true}');
     await expect(loadWeightReminder()).resolves.toEqual({
       ...defaultWeightReminder,
       enabled: true,

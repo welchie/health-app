@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "BP Diary",
-    "slug": "bp-tracker",
+    "name": "Health App",
+    "slug": "health-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.bpdiary",
+      "bundleIdentifier": "com.example.healthapp",
       "infoPlist": {
-        "NSUserNotificationsUsageDescription": "Used to remind you to take your daily blood pressure reading."
+        "NSUserNotificationsUsageDescription": "Used to remind you to take your blood pressure and your weekly weigh-in."
       }
     },
     "android": {
@@ -21,7 +21,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.example.bpdiary"
+      "package": "com.example.healthapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"

@@ -8,7 +8,7 @@ import { Reading } from '../types';
 const mocked = Notifications as jest.Mocked<typeof Notifications>;
 
 const stored = (readings: Reading[]) =>
-  AsyncStorage.setItem('bp-tracker/readings/v1', JSON.stringify(readings));
+  AsyncStorage.setItem('health-app/readings/v1', JSON.stringify(readings));
 
 const daysAgo = (days: number) =>
   new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
@@ -65,7 +65,7 @@ describe('App', () => {
     await logReading('128', '82', '66');
 
     await waitFor(async () => {
-      const raw = await AsyncStorage.getItem('bp-tracker/readings/v1');
+      const raw = await AsyncStorage.getItem('health-app/readings/v1');
       expect(JSON.parse(raw as string)).toEqual([
         expect.objectContaining({ systolic: 128, diastolic: 82, heartRate: 66 }),
       ]);
@@ -140,7 +140,7 @@ describe('App', () => {
 
   it('remembers the reminder and cancels it when switched off', async () => {
     await AsyncStorage.setItem(
-      'bp-tracker/reminder/v1',
+      'health-app/reminder/v1',
       JSON.stringify({ enabled: true, hour: 21, minute: 30 }),
     );
     await openApp();
@@ -157,7 +157,7 @@ describe('App', () => {
     await fireEvent(screen.getByLabelText('Daily reminder'), 'valueChange', false);
 
     await waitFor(async () => {
-      const raw = await AsyncStorage.getItem('bp-tracker/reminder/v1');
+      const raw = await AsyncStorage.getItem('health-app/reminder/v1');
       expect(JSON.parse(raw as string).enabled).toBe(false);
     });
     await waitFor(() =>
@@ -168,7 +168,7 @@ describe('App', () => {
 
   it('re-arms a saved reminder on launch', async () => {
     await AsyncStorage.setItem(
-      'bp-tracker/reminder/v1',
+      'health-app/reminder/v1',
       JSON.stringify({ enabled: true, hour: 7, minute: 15 }),
     );
 
@@ -202,11 +202,11 @@ describe('App', () => {
       ),
     );
     await waitFor(async () => {
-      const raw = await AsyncStorage.getItem('bp-tracker/weight-reminder/v1');
+      const raw = await AsyncStorage.getItem('health-app/weight-reminder/v1');
       expect(JSON.parse(raw as string)).toMatchObject({ enabled: true, weekday: 2 });
     });
     // The daily blood pressure reminder was never touched.
-    await expect(AsyncStorage.getItem('bp-tracker/reminder/v1')).resolves.toBeNull();
+    await expect(AsyncStorage.getItem('health-app/reminder/v1')).resolves.toBeNull();
   });
 
   it('lets the weigh-in day be changed', async () => {
@@ -227,11 +227,11 @@ describe('App', () => {
 
   it('runs both reminders at once', async () => {
     await AsyncStorage.setItem(
-      'bp-tracker/reminder/v1',
+      'health-app/reminder/v1',
       JSON.stringify({ enabled: true, hour: 9, minute: 0 }),
     );
     await AsyncStorage.setItem(
-      'bp-tracker/weight-reminder/v1',
+      'health-app/weight-reminder/v1',
       JSON.stringify({ enabled: true, hour: 7, minute: 30, weekday: 6 }),
     );
 
@@ -288,7 +288,7 @@ describe('App', () => {
 
     await waitFor(() => expect(screen.getByText('Nothing logged yet.')).toBeTruthy());
     await waitFor(async () => {
-      const raw = await AsyncStorage.getItem('bp-tracker/readings/v1');
+      const raw = await AsyncStorage.getItem('health-app/readings/v1');
       expect(JSON.parse(raw as string)).toEqual([]);
     });
     alert.mockRestore();

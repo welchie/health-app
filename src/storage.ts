@@ -9,13 +9,14 @@ import {
   WeightUnit,
 } from './types';
 
-// Keys keep the original prefix: renaming them would orphan data already on the
-// device, which is not worth a migration for a cosmetic change.
-const READINGS_KEY = 'bp-tracker/readings/v1';
-const REMINDER_KEY = 'bp-tracker/reminder/v1';
-const WEIGHTS_KEY = 'bp-tracker/weights/v1';
-const WEIGHT_UNIT_KEY = 'bp-tracker/units/v1';
-const WEIGHT_REMINDER_KEY = 'bp-tracker/weight-reminder/v1';
+// Renamed with the app. Safe to do because the Android package and iOS bundle id
+// changed at the same time, so the renamed app starts with its own empty storage
+// and there is no older data to orphan.
+const READINGS_KEY = 'health-app/readings/v1';
+const REMINDER_KEY = 'health-app/reminder/v1';
+const WEIGHTS_KEY = 'health-app/weights/v1';
+const WEIGHT_UNIT_KEY = 'health-app/units/v1';
+const WEIGHT_REMINDER_KEY = 'health-app/weight-reminder/v1';
 
 export async function loadReadings(): Promise<Reading[]> {
   const raw = await AsyncStorage.getItem(READINGS_KEY);

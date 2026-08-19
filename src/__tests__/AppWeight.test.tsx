@@ -15,7 +15,7 @@ const history: WeightEntry[] = [
 ];
 
 const storeWeights = (entries: WeightEntry[]) =>
-  AsyncStorage.setItem('bp-tracker/weights/v1', JSON.stringify(entries));
+  AsyncStorage.setItem('health-app/weights/v1', JSON.stringify(entries));
 
 beforeEach(async () => {
   await AsyncStorage.clear();
@@ -62,7 +62,7 @@ describe('logging a weight', () => {
     await logWeight('12', '11');
 
     await waitFor(async () => {
-      const raw = await AsyncStorage.getItem('bp-tracker/weights/v1');
+      const raw = await AsyncStorage.getItem('health-app/weights/v1');
       expect(JSON.parse(raw as string)).toEqual([
         expect.objectContaining({ grams: 81193 }),
       ]);
@@ -73,7 +73,7 @@ describe('logging a weight', () => {
     await openWeight();
     await logWeight('12', '11');
 
-    await expect(AsyncStorage.getItem('bp-tracker/readings/v1')).resolves.toBeNull();
+    await expect(AsyncStorage.getItem('health-app/readings/v1')).resolves.toBeNull();
   });
 });
 
@@ -140,7 +140,7 @@ describe('the unit preference', () => {
     expect(screen.queryByText('12 st 11.0 lb')).toBeNull();
 
     // The stored grams are the same number they always were.
-    const raw = await AsyncStorage.getItem('bp-tracker/weights/v1');
+    const raw = await AsyncStorage.getItem('health-app/weights/v1');
     expect(JSON.parse(raw as string)).toEqual([
       expect.objectContaining({ grams: 81193 }),
     ]);
@@ -151,12 +151,12 @@ describe('the unit preference', () => {
     await fireEvent.press(screen.getByText('kg'));
 
     await waitFor(async () => {
-      await expect(AsyncStorage.getItem('bp-tracker/units/v1')).resolves.toBe('kg');
+      await expect(AsyncStorage.getItem('health-app/units/v1')).resolves.toBe('kg');
     });
   });
 
   it('loads the saved preference on launch', async () => {
-    await AsyncStorage.setItem('bp-tracker/units/v1', 'kg');
+    await AsyncStorage.setItem('health-app/units/v1', 'kg');
     await storeWeights([history[2]]);
 
     await openWeight();
@@ -180,7 +180,7 @@ describe('deleting a weight', () => {
 
     await waitFor(() => expect(screen.getByText('No weights logged yet.')).toBeTruthy());
     await waitFor(async () => {
-      const raw = await AsyncStorage.getItem('bp-tracker/weights/v1');
+      const raw = await AsyncStorage.getItem('health-app/weights/v1');
       expect(JSON.parse(raw as string)).toEqual([]);
     });
     alert.mockRestore();
