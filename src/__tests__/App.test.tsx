@@ -31,6 +31,8 @@ beforeEach(async () => {
 
 const openApp = async () => {
   await render(<App />);
+  await waitFor(() => expect(screen.getAllByText('Summary').length).toBeGreaterThan(0));
+  await fireEvent.press(screen.getAllByText('Log')[0]);
   await waitFor(() => expect(screen.getByText('New reading')).toBeTruthy());
 };
 
@@ -42,11 +44,10 @@ const logReading = async (systolic: string, diastolic: string, pulse?: string) =
 };
 
 describe('App', () => {
-  it('starts on the log tab prompting for a first reading', async () => {
-    await openApp();
-
-    expect(screen.getByText('Log your first reading below')).toBeTruthy();
-    expect(screen.queryByText('Latest')).toBeNull();
+  it('starts on the summary tab by default', async () => {
+    await render(<App />);
+    await waitFor(() => expect(screen.getAllByText('Summary').length).toBeGreaterThan(0));
+    expect(screen.getByText('Overview of your health metrics')).toBeTruthy();
   });
 
   it('shows a saved reading as the latest, with its band', async () => {
