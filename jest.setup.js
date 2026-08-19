@@ -11,7 +11,7 @@ jest.mock('expo-notifications', () => ({
   cancelScheduledNotificationAsync: jest.fn(async () => undefined),
   getAllScheduledNotificationsAsync: jest.fn(async () => []),
   AndroidImportance: { HIGH: 4 },
-  SchedulableTriggerInputTypes: { DAILY: 'daily' },
+  SchedulableTriggerInputTypes: { DAILY: 'daily', WEEKLY: 'weekly' },
 }));
 
 jest.mock('@react-native-async-storage/async-storage', () =>

@@ -8,16 +8,44 @@ export type Reading = {
   note?: string;
 };
 
+/**
+ * Weight is stored in whole grams, whatever units it was entered in. Grams are
+ * the single source of truth: the unit preference below only decides how a
+ * value is rendered, so switching units re-expresses a weight rather than
+ * rewriting it, and repeated kg <-> st/lb switches cannot drift.
+ */
+export type WeightEntry = {
+  id: string;
+  /** ISO 8601 timestamp of when the weight was taken. */
+  takenAt: string;
+  grams: number;
+  note?: string;
+};
+
+export type WeightUnit = 'kg' | 'st_lb';
+
+export const defaultWeightUnit: WeightUnit = 'st_lb';
+
 export type ReminderSettings = {
   enabled: boolean;
   /** 0-23 */
   hour: number;
   /** 0-59 */
   minute: number;
+  /** Weekly reminders only. 1 = Sunday, matching expo-notifications. */
+  weekday?: number;
 };
 
 export const defaultReminder: ReminderSettings = {
   enabled: false,
   hour: 8,
   minute: 0,
+};
+
+/** Monday morning, the usual weigh-in slot. */
+export const defaultWeightReminder: ReminderSettings = {
+  enabled: false,
+  hour: 8,
+  minute: 0,
+  weekday: 2,
 };

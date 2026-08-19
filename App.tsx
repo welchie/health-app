@@ -15,6 +15,9 @@ import ReadingForm from './src/components/ReadingForm';
 import ReadingList from './src/components/ReadingList';
 import ReminderCard from './src/components/ReminderCard';
 import TrendChart, { Series } from './src/components/TrendChart';
+import UnitChips from './src/components/UnitChips';
+import WeightForm from './src/components/WeightForm';
+import WeightList from './src/components/WeightList';
 import {
   averageOf,
   categorise,
@@ -24,15 +27,46 @@ import {
   sortByNewest,
 } from './src/bp';
 import {
+  ReminderKind,
   remindersSupported,
   ScheduleResult,
-  scheduleDailyReminder,
+  scheduleReminder,
 } from './src/notifications';
-import { loadReadings, loadReminder, saveReadings, saveReminder } from './src/storage';
+import {
+  loadReadings,
+  loadReminder,
+  loadWeightReminder,
+  loadWeights,
+  loadWeightUnit,
+  saveReadings,
+  saveReminder,
+  saveWeightReminder,
+  saveWeights,
+  saveWeightUnit,
+} from './src/storage';
 import { categoryColors, colors } from './src/theme';
-import { defaultReminder, Reading, ReminderSettings } from './src/types';
+import {
+  defaultReminder,
+  defaultWeightReminder,
+  defaultWeightUnit,
+  Reading,
+  ReminderSettings,
+  WeightEntry,
+  WeightUnit,
+} from './src/types';
+import {
+  averageGrams,
+  formatChartAxis,
+  formatChartPoint,
+  formatWeight,
+  formatWeightDelta,
+  toChartValue,
+  unitLabel,
+  weightChange,
+} from './src/weight';
 
-type Tab = 'log' | 'trends' | 'reminder';
+type Tab = 'log' | 'trends' | 'settings';
+type Metric = 'bp' | 'weight';
 type ReminderProblem = 'denied' | 'unsupported' | null;
 
 const problemFrom = (result: ScheduleResult): ReminderProblem =>
@@ -43,27 +77,49 @@ type Range = 7 | 30 | 0; // 0 means everything
 export default function App() {
   const [readings, setReadings] = useState<Reading[]>([]);
   const [reminder, setReminder] = useState<ReminderSettings>(defaultReminder);
+  const [weightReminder, setWeightReminder] =
+    useState<ReminderSettings>(defaultWeightReminder);
   const [reminderProblem, setReminderProblem] = useState<ReminderProblem>(
     remindersSupported ? null : 'unsupported',
   );
+  const [weights, setWeights] = useState<WeightEntry[]>([]);
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>(defaultWeightUnit);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('log');
+  const [metric, setMetric] = useState<Metric>('bp');
   const [range, setRange] = useState<Range>(30);
 
   useEffect(() => {
     (async () => {
-      const [storedReadings, storedReminder] = await Promise.all([
+      const [
+        storedReadings,
+        storedReminder,
+        storedWeights,
+        storedUnit,
+        storedWeightReminder,
+      ] = await Promise.all([
         loadReadings(),
         loadReminder(),
+        loadWeights(),
+        loadWeightUnit(),
+        loadWeightReminder(),
       ]);
       setReadings(storedReadings);
       setReminder(storedReminder);
+      setWeights(storedWeights);
+      setWeightUnit(storedUnit);
+      setWeightReminder(storedWeightReminder);
       setLoading(false);
 
       // Re-arm on launch: the OS drops scheduled notifications after some
       // events (reinstall, permission changes), and rescheduling is idempotent.
       if (storedReminder.enabled) {
-        setReminderProblem(problemFrom(await scheduleDailyReminder(storedReminder)));
+        setReminderProblem(problemFrom(await scheduleReminder('bp', storedReminder)));
+      }
+      if (storedWeightReminder.enabled) {
+        setReminderProblem(
+          problemFrom(await scheduleReminder('weight', storedWeightReminder)),
+        );
       }
     })();
   }, []);
@@ -88,11 +144,44 @@ export default function App() {
     await saveReadings(next);
   };
 
-  const updateReminder = async (next: ReminderSettings) => {
-    setReminder(next);
-    await saveReminder(next);
-    setReminderProblem(problemFrom(await scheduleDailyReminder(next)));
+  const addWeight = async (entry: Omit<WeightEntry, 'id'>) => {
+    const next = [...weights, { ...entry, id: `${Date.now()}` }];
+    setWeights(next);
+    await saveWeights(next);
   };
+
+  const deleteWeight = async (id: string) => {
+    const next = weights.filter((w) => w.id !== id);
+    setWeights(next);
+    await saveWeights(next);
+  };
+
+  /** Display-only: stored grams are untouched by a unit change. */
+  const changeWeightUnit = async (unit: WeightUnit) => {
+    setWeightUnit(unit);
+    await saveWeightUnit(unit);
+  };
+
+  const updateReminder = async (kind: ReminderKind, next: ReminderSettings) => {
+    if (kind === 'bp') {
+      setReminder(next);
+      await saveReminder(next);
+    } else {
+      setWeightReminder(next);
+      await saveWeightReminder(next);
+    }
+    setReminderProblem(problemFrom(await scheduleReminder(kind, next)));
+  };
+
+  const newestWeights = useMemo(() => sortByNewest(weights), [weights]);
+  const weightsInRange = useMemo(
+    () =>
+      range === 0 ? newestWeights : sortByNewest(readingsWithinDays(weights, range)),
+    [newestWeights, weights, range],
+  );
+  const latestWeight = newestWeights[0];
+  const weightAverage = useMemo(() => averageGrams(weightsInRange), [weightsInRange]);
+  const weightDelta = useMemo(() => weightChange(weightsInRange), [weightsInRange]);
 
   // Oldest to newest for plotting, positioned by actual time so gaps are visible.
   const chart = useMemo(() => {
@@ -131,6 +220,28 @@ export default function App() {
     };
   }, [inRange]);
 
+  const weightChart = useMemo(() => {
+    const series = [...weightsInRange].reverse();
+    if (series.length === 0) {
+      return { labels: [], positions: [], weight: [] as Series[] };
+    }
+    const times = series.map((w) => new Date(w.takenAt).getTime());
+    const first = times[0];
+    const span = times[times.length - 1] - first;
+    return {
+      labels: series.map((w) => formatWhen(w.takenAt)),
+      positions: times.map((t) => (span === 0 ? 0.5 : (t - first) / span)),
+      weight: [
+        {
+          key: 'weight',
+          label: 'Weight',
+          color: colors.weight,
+          points: series.map((w) => toChartValue(w.grams, weightUnit)),
+        },
+      ] as Series[],
+    };
+  }, [weightsInRange, weightUnit]);
+
   if (loading) {
     return (
       <SafeAreaProvider>
@@ -153,17 +264,48 @@ export default function App() {
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.appTitle}>Blood pressure</Text>
+            <Text style={styles.appTitle}>
+              {metric === 'bp' ? 'Blood pressure' : 'Weight'}
+            </Text>
             <Text style={styles.appSubtitle}>
-              {latest
-                ? `Last reading ${formatWhen(latest.takenAt).toLowerCase()}`
-                : 'Log your first reading below'}
-              {reminder.enabled && reminderProblem == null
+              {metric === 'bp'
+                ? latest
+                  ? `Last reading ${formatWhen(latest.takenAt).toLowerCase()}`
+                  : 'Log your first reading below'
+                : latestWeight
+                  ? `Last weight ${formatWhen(latestWeight.takenAt).toLowerCase()}`
+                  : 'Log your first weight below'}
+              {metric === 'bp' && reminder.enabled && reminderProblem == null
                 ? ` · reminder ${formatClock(reminder.hour, reminder.minute)}`
                 : ''}
             </Text>
 
-            {tab === 'log' && (
+            {tab !== 'settings' && (
+              <View style={styles.rangeRow}>
+                {(
+                  [
+                    ['bp', 'Blood pressure'],
+                    ['weight', 'Weight'],
+                  ] as [Metric, string][]
+                ).map(([key, label]) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={[styles.rangeChip, metric === key && styles.rangeChipActive]}
+                    onPress={() => setMetric(key)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: metric === key }}
+                  >
+                    <Text
+                      style={[styles.rangeText, metric === key && styles.rangeTextActive]}
+                    >
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {tab === 'log' && metric === 'bp' && (
               <>
                 <ReadingForm onSave={addReading} />
                 {latest && <LatestCard reading={latest} />}
@@ -176,9 +318,38 @@ export default function App() {
               </>
             )}
 
-            {tab === 'trends' && (
+            {tab === 'log' && metric === 'weight' && (
               <>
-                <View style={styles.rangeRow}>
+                <WeightForm
+                  unit={weightUnit}
+                  onChangeUnit={changeWeightUnit}
+                  onSave={addWeight}
+                />
+                {latestWeight && (
+                  <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Latest</Text>
+                    <View style={styles.heroRow}>
+                      <Text style={styles.heroWeight}>
+                        {formatWeight(latestWeight.grams, weightUnit)}
+                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.heroMeta}>
+                          {formatWhen(latestWeight.takenAt)}
+                        </Text>
+                        {weightDelta != null && (
+                          <Text style={styles.heroMeta}>
+                            {formatWeightDelta(weightDelta, weightUnit)} over this period
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
+
+            {tab === 'trends' && (
+              <View style={styles.rangeRow}>
                   {([7, 30, 0] as Range[]).map((r) => (
                     <TouchableOpacity
                       key={r}
@@ -187,13 +358,16 @@ export default function App() {
                     >
                       <Text
                         style={[styles.rangeText, range === r && styles.rangeTextActive]}
-                      >
-                        {r === 0 ? 'All' : `${r} days`}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                    >
+                      {r === 0 ? 'All' : `${r} days`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
 
+            {tab === 'trends' && metric === 'bp' && (
+              <>
                 <View style={styles.card}>
                   <TrendChart
                     title="Blood pressure"
@@ -225,12 +399,99 @@ export default function App() {
               </>
             )}
 
-            {tab === 'reminder' && (
+            {tab === 'trends' && metric === 'weight' && (
               <>
+                <View style={styles.card}>
+                  <TrendChart
+                    title="Weight"
+                    unit={unitLabel(weightUnit)}
+                    labels={weightChart.labels}
+                    positions={weightChart.positions}
+                    series={weightChart.weight}
+                    formatValue={(value, context) =>
+                      context === 'compact'
+                        ? formatChartAxis(value)
+                        : formatChartPoint(value, weightUnit)
+                    }
+                  />
+                </View>
+
+                {weightAverage != null && (
+                  <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Over this period</Text>
+                    <View style={styles.statRow}>
+                      <Stat
+                        label="Average"
+                        value={formatWeight(weightAverage, weightUnit)}
+                        unit={`${weightsInRange.length} weigh-in${weightsInRange.length === 1 ? '' : 's'}`}
+                        color={colors.weight}
+                      />
+                      <Stat
+                        label="Change"
+                        value={
+                          weightDelta == null
+                            ? '—'
+                            : formatWeightDelta(weightDelta, weightUnit)
+                        }
+                        unit={weightDelta == null ? 'needs two weigh-ins' : 'first to last'}
+                        color={colors.weight}
+                      />
+                    </View>
+                  </View>
+                )}
+
+                <Text style={styles.sectionTitle}>History</Text>
+                <WeightList
+                  entries={weightsInRange}
+                  unit={weightUnit}
+                  onDelete={deleteWeight}
+                />
+              </>
+            )}
+
+            {tab === 'settings' && (
+              <>
+                <View style={styles.card}>
+                  <View style={styles.settingRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.settingTitle}>Weight units</Text>
+                      <Text style={styles.settingHint}>
+                        Changes how weights are shown, never what was recorded.
+                      </Text>
+                    </View>
+                    <UnitChips unit={weightUnit} onChange={changeWeightUnit} />
+                  </View>
+                </View>
+
+                {reminderProblem === 'denied' && (
+                  <Text style={styles.notice}>
+                    Notifications are blocked for this app. Enable them in your device
+                    settings to get these reminders.
+                  </Text>
+                )}
+
+                {reminderProblem === 'unsupported' && (
+                  <Text style={styles.notice}>
+                    Expo Go on Android cannot schedule notifications. Your choices are
+                    saved, and reminders will start working in a development build (npx
+                    expo run:android).
+                  </Text>
+                )}
+
                 <ReminderCard
+                  title="Daily reminder"
+                  subtitle="A notification every day to take your blood pressure."
+                  cadence="daily"
                   settings={reminder}
-                  onChange={updateReminder}
-                  problem={reminderProblem}
+                  onChange={(next) => updateReminder('bp', next)}
+                />
+
+                <ReminderCard
+                  title="Weekly weigh-in"
+                  subtitle="A notification once a week to weigh yourself."
+                  cadence="weekly"
+                  settings={weightReminder}
+                  onChange={(next) => updateReminder('weight', next)}
                 />
                 <View style={styles.card}>
                   <Text style={styles.cardTitle}>Getting a good reading</Text>
@@ -254,7 +515,7 @@ export default function App() {
               [
                 ['log', 'Log'],
                 ['trends', 'Trends'],
-                ['reminder', 'Reminder'],
+                ['settings', 'Settings'],
               ] as [Tab, string][]
             ).map(([key, label]) => (
               <TouchableOpacity
@@ -366,6 +627,7 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 13, fontWeight: '700', color: colors.muted, marginBottom: 10 },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   hero: { fontSize: 40, fontWeight: '800', color: colors.text },
+  heroWeight: { fontSize: 30, fontWeight: '800', color: colors.text },
   heroSlash: { fontSize: 28, color: colors.muted, fontWeight: '400' },
   heroMeta: { fontSize: 12, color: colors.muted, marginTop: 4 },
   categoryRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -379,6 +641,9 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 24, fontWeight: '700', color: colors.text, marginTop: 2 },
   statUnit: { fontSize: 10, color: colors.muted },
   rangeRow: { flexDirection: 'row', gap: 8 },
+  settingRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  settingTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
+  settingHint: { fontSize: 12, color: colors.muted, marginTop: 2 },
   rangeChip: {
     paddingHorizontal: 14,
     paddingVertical: 7,
@@ -392,6 +657,7 @@ const styles = StyleSheet.create({
   rangeTextActive: { color: '#fff' },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 4 },
   tip: { fontSize: 13, color: colors.text, marginBottom: 6, lineHeight: 18 },
+  notice: { fontSize: 12, color: colors.danger, lineHeight: 17 },
   disclaimer: { fontSize: 11, color: colors.muted, lineHeight: 16, marginTop: 8 },
   tabBar: {
     flexDirection: 'row',

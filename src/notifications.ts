@@ -2,7 +2,30 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 import { ReminderSettings } from './types';
 
-const DAILY_REMINDER_ID = 'bp-daily-reminder';
+export type ReminderKind = 'bp' | 'weight';
+
+type ReminderSpec = {
+  /** Tags the scheduled notification so each kind can be cancelled alone. */
+  id: string;
+  title: string;
+  body: string;
+  cadence: 'daily' | 'weekly';
+};
+
+const SPECS: Record<ReminderKind, ReminderSpec> = {
+  bp: {
+    id: 'bp-daily-reminder',
+    title: 'Blood pressure check',
+    body: 'Time to take todays reading. Sit still for five minutes first.',
+    cadence: 'daily',
+  },
+  weight: {
+    id: 'weight-weekly-reminder',
+    title: 'Weekly weigh-in',
+    body: 'Time to weigh yourself, before breakfast if you can.',
+    cadence: 'weekly',
+  },
+};
 
 export type ScheduleResult = 'scheduled' | 'cancelled' | 'denied' | 'unsupported';
 
@@ -17,6 +40,11 @@ const inExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreCl
 export const remindersSupported = !(inExpoGo && Platform.OS === 'android');
 
 type NotificationsModule = typeof import('expo-notifications');
+
+/** Type-only, so it does not pull the native module in at runtime. */
+type TriggerInput = Parameters<
+  NotificationsModule['scheduleNotificationAsync']
+>[0]['trigger'];
 
 let cached: NotificationsModule | null = null;
 
@@ -59,46 +87,61 @@ export async function requestPermission(): Promise<boolean> {
   return asked.granted;
 }
 
-export async function cancelDailyReminder() {
+/** Cancels one kind of reminder, leaving the other kind and other apps alone. */
+export async function cancelReminder(kind: ReminderKind) {
   const notifications = getNotifications();
   if (!notifications) return;
 
   const scheduled = await notifications.getAllScheduledNotificationsAsync();
   await Promise.all(
     scheduled
-      .filter((n) => n.content.data?.kind === DAILY_REMINDER_ID)
+      .filter((n) => n.content.data?.kind === SPECS[kind].id)
       .map((n) => notifications.cancelScheduledNotificationAsync(n.identifier)),
   );
 }
 
 /**
- * Replaces any existing reminder with one that repeats every day at the given
- * time, reporting why nothing was scheduled when that is the outcome.
+ * Replaces any existing reminder of this kind with one that repeats at the given
+ * time - daily for blood pressure, weekly for weight - reporting why nothing was
+ * scheduled when that is the outcome.
  */
-export async function scheduleDailyReminder(
+export async function scheduleReminder(
+  kind: ReminderKind,
   settings: ReminderSettings,
 ): Promise<ScheduleResult> {
   const notifications = getNotifications();
   if (!notifications) return 'unsupported';
 
-  await cancelDailyReminder();
+  const spec = SPECS[kind];
+  await cancelReminder(kind);
   if (!settings.enabled) return 'cancelled';
 
   const allowed = await requestPermission();
   if (!allowed) return 'denied';
 
+  const trigger: TriggerInput =
+    spec.cadence === 'weekly'
+      ? {
+          type: notifications.SchedulableTriggerInputTypes.WEEKLY,
+          // expo-notifications counts weekdays from 1 = Sunday.
+          weekday: settings.weekday ?? 2,
+          hour: settings.hour,
+          minute: settings.minute,
+        }
+      : {
+          type: notifications.SchedulableTriggerInputTypes.DAILY,
+          hour: settings.hour,
+          minute: settings.minute,
+        };
+
   await notifications.scheduleNotificationAsync({
     content: {
-      title: 'Blood pressure check',
-      body: 'Time to take todays reading. Sit still for five minutes first.',
-      data: { kind: DAILY_REMINDER_ID },
+      title: spec.title,
+      body: spec.body,
+      data: { kind: spec.id },
       ...(Platform.OS === 'android' ? { channelId: 'reminders' } : null),
     },
-    trigger: {
-      type: notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: settings.hour,
-      minute: settings.minute,
-    },
+    trigger,
   });
   return 'scheduled';
 }

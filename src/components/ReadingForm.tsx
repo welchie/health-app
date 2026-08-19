@@ -10,6 +10,7 @@ import {
 import { categorise } from '../bp';
 import { categoryColors, colors } from '../theme';
 import { Reading } from '../types';
+import NumberField from './NumberField';
 
 type Props = {
   onSave: (reading: Omit<Reading, 'id'>) => void;
@@ -76,21 +77,21 @@ export default function ReadingForm({ onSave }: Props) {
       <Text style={styles.cardTitle}>New reading</Text>
 
       <View style={styles.row}>
-        <Field
+        <NumberField
           label="Systolic"
           hint="top"
           value={systolic}
           onChangeText={setSystolic}
           accent={colors.systolic}
         />
-        <Field
+        <NumberField
           label="Diastolic"
           hint="bottom"
           value={diastolic}
           onChangeText={setDiastolic}
           accent={colors.diastolic}
         />
-        <Field
+        <NumberField
           label="Pulse"
           hint="optional"
           value={heartRate}
@@ -128,37 +129,6 @@ export default function ReadingForm({ onSave }: Props) {
   );
 }
 
-function Field({
-  label,
-  hint,
-  value,
-  onChangeText,
-  accent,
-}: {
-  label: string;
-  hint: string;
-  value: string;
-  onChangeText: (v: string) => void;
-  accent: string;
-}) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        style={[styles.input, { borderColor: value ? accent : colors.border }]}
-        value={value}
-        onChangeText={(t) => onChangeText(t.replace(/[^0-9]/g, ''))}
-        keyboardType="number-pad"
-        maxLength={3}
-        placeholder="--"
-        placeholderTextColor={colors.muted}
-        accessibilityLabel={`${label} ${hint}`}
-      />
-      <Text style={styles.fieldHint}>{hint}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
@@ -169,19 +139,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 12 },
   row: { flexDirection: 'row', gap: 10 },
-  field: { flex: 1 },
-  fieldLabel: { fontSize: 12, color: colors.muted, marginBottom: 4 },
-  fieldHint: { fontSize: 10, color: colors.muted, marginTop: 3 },
-  input: {
-    borderWidth: 2,
-    borderRadius: 12,
-    paddingVertical: 12,
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: colors.text,
-    backgroundColor: '#fbfcfe',
-  },
   note: {
     marginTop: 12,
     borderWidth: 1,

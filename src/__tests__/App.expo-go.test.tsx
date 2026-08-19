@@ -8,10 +8,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 
 jest.mock('../notifications', () => ({
   remindersSupported: false,
-  scheduleDailyReminder: jest.fn(async () => 'unsupported'),
+  scheduleReminder: jest.fn(async () => 'unsupported'),
+  cancelReminder: jest.fn(async () => undefined),
 }));
 
-const { scheduleDailyReminder } = require('../notifications');
+const { scheduleReminder } = require('../notifications');
 const App = require('../../App').default;
 
 describe('where reminders are unsupported', () => {
@@ -25,7 +26,7 @@ describe('where reminders are unsupported', () => {
     await render(<App />);
     await waitFor(() => expect(screen.getByText('New reading')).toBeTruthy());
 
-    await fireEvent.press(screen.getByText('Reminder'));
+    await fireEvent.press(screen.getByText('Settings'));
 
     expect(
       screen.getByText(/Expo Go on Android cannot schedule notifications/),
@@ -36,10 +37,10 @@ describe('where reminders are unsupported', () => {
     await render(<App />);
     await waitFor(() => expect(screen.getByText('New reading')).toBeTruthy());
 
-    await fireEvent.press(screen.getByText('Reminder'));
-    await fireEvent(screen.getByRole('switch'), 'valueChange', true);
+    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent(screen.getByLabelText('Daily reminder'), 'valueChange', true);
 
-    await waitFor(() => expect(scheduleDailyReminder).toHaveBeenCalled());
+    await waitFor(() => expect(scheduleReminder).toHaveBeenCalledWith('bp', expect.anything()));
     expect(screen.queryByText(/· reminder/)).toBeNull();
   });
 });

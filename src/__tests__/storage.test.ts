@@ -1,6 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { loadReadings, loadReminder, saveReadings, saveReminder } from '../storage';
-import { defaultReminder, Reading } from '../types';
+import {
+  loadReadings,
+  loadReminder,
+  loadWeightReminder,
+  loadWeights,
+  loadWeightUnit,
+  saveReadings,
+  saveReminder,
+  saveWeightReminder,
+  saveWeights,
+  saveWeightUnit,
+} from '../storage';
+import {
+  defaultReminder,
+  defaultWeightReminder,
+  Reading,
+  WeightEntry,
+} from '../types';
 
 const sample: Reading[] = [
   { id: '1', takenAt: '2026-08-01T08:00:00.000Z', systolic: 122, diastolic: 79, heartRate: 68 },
@@ -53,5 +69,87 @@ describe('reminder storage', () => {
   it('survives corrupted reminder storage', async () => {
     await AsyncStorage.setItem('bp-tracker/reminder/v1', 'nope');
     await expect(loadReminder()).resolves.toEqual(defaultReminder);
+  });
+});
+
+const weights: WeightEntry[] = [
+  { id: 'w1', takenAt: '2026-08-01T07:30:00.000Z', grams: 81193 },
+];
+
+describe('weight storage', () => {
+  it('returns an empty list before anything is saved', async () => {
+    await expect(loadWeights()).resolves.toEqual([]);
+  });
+
+  it('round-trips weights', async () => {
+    await saveWeights(weights);
+    await expect(loadWeights()).resolves.toEqual(weights);
+  });
+
+  it('survives corrupted storage instead of throwing', async () => {
+    await AsyncStorage.setItem('bp-tracker/weights/v1', '{not json');
+    await expect(loadWeights()).resolves.toEqual([]);
+  });
+
+  it('ignores stored values that are not a list', async () => {
+    await AsyncStorage.setItem('bp-tracker/weights/v1', '{"grams":81193}');
+    await expect(loadWeights()).resolves.toEqual([]);
+  });
+
+  it('keeps weights separate from blood pressure readings', async () => {
+    await saveReadings(sample);
+    await saveWeights(weights);
+
+    await expect(loadReadings()).resolves.toEqual(sample);
+    await expect(loadWeights()).resolves.toEqual(weights);
+  });
+});
+
+describe('weight unit preference', () => {
+  it('defaults to stones and pounds', async () => {
+    await expect(loadWeightUnit()).resolves.toBe('st_lb');
+  });
+
+  it('round-trips a choice', async () => {
+    await saveWeightUnit('kg');
+    await expect(loadWeightUnit()).resolves.toBe('kg');
+  });
+
+  it('falls back to the default for an unrecognised value', async () => {
+    await AsyncStorage.setItem('bp-tracker/units/v1', 'pounds-only');
+    await expect(loadWeightUnit()).resolves.toBe('st_lb');
+  });
+});
+
+describe('weight reminder storage', () => {
+  it('defaults to a Monday morning weigh-in, switched off', async () => {
+    await expect(loadWeightReminder()).resolves.toEqual(defaultWeightReminder);
+    expect(defaultWeightReminder.weekday).toBe(2);
+  });
+
+  it('round-trips settings', async () => {
+    await saveWeightReminder({ enabled: true, hour: 7, minute: 0, weekday: 6 });
+    await expect(loadWeightReminder()).resolves.toEqual({
+      enabled: true,
+      hour: 7,
+      minute: 0,
+      weekday: 6,
+    });
+  });
+
+  it('is stored separately from the blood pressure reminder', async () => {
+    await saveReminder({ enabled: true, hour: 9, minute: 15 });
+    await saveWeightReminder({ enabled: true, hour: 7, minute: 0, weekday: 2 });
+
+    await expect(loadReminder()).resolves.toMatchObject({ hour: 9, minute: 15 });
+    await expect(loadWeightReminder()).resolves.toMatchObject({ hour: 7, weekday: 2 });
+  });
+
+  it('fills in missing fields from the default', async () => {
+    await AsyncStorage.setItem('bp-tracker/weight-reminder/v1', '{"enabled":true}');
+    await expect(loadWeightReminder()).resolves.toEqual({
+      ...defaultWeightReminder,
+      enabled: true,
+    });
   });
 });

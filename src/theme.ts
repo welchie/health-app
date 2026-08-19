@@ -7,6 +7,8 @@ export const colors = {
   systolic: '#d7263d',
   diastolic: '#1b6ca8',
   pulse: '#8a4fd3',
+  // Checked with the dataviz palette validator alongside the three above.
+  weight: '#c26a1b',
   accent: '#0f8a6a',
   danger: '#c2352b',
 };

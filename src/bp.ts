@@ -40,13 +40,17 @@ export function averageOf(readings: Reading[]) {
   };
 }
 
-export function readingsWithinDays(readings: Reading[], days: number) {
+/** Generic over anything timestamped, so weights use it too. */
+export function readingsWithinDays<T extends { takenAt: string }>(
+  readings: T[],
+  days: number,
+) {
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   return readings.filter((r) => new Date(r.takenAt).getTime() >= cutoff);
 }
 
-/** Newest first, which is the order the list is displayed in. */
-export function sortByNewest(readings: Reading[]) {
+/** Newest first, which is the order lists are displayed in. */
+export function sortByNewest<T extends { takenAt: string }>(readings: T[]) {
   return [...readings].sort(
     (a, b) => new Date(b.takenAt).getTime() - new Date(a.takenAt).getTime(),
   );

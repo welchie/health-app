@@ -11,6 +11,13 @@ export type Series = {
   points: (number | null)[];
 };
 
+/**
+ * 'compact' is for anything drawn on the plot - axis ticks and the label beside
+ * the newest point - where a long string would be clipped. 'full' is for the
+ * readout line below, which has the width to spell a value out.
+ */
+export type ValueContext = 'compact' | 'full';
+
 type Props = {
   title: string;
   unit: string;
@@ -18,20 +25,45 @@ type Props = {
   /** Fractional x position (0-1) of each point, so gaps in time show as gaps. */
   positions: number[];
   series: Series[];
-  /** Faint horizontal guides, e.g. the 120 / 80 reference values. */
+  /** Faint horizontal guides, e.g. the 120 / 90 reference values. */
   guides?: { value: number; label: string }[];
+  /**
+   * How a value is written in each place. Defaults to whole numbers, which is
+   * what mmHg and bpm want.
+   */
+  formatValue?: (value: number, context: ValueContext) => string;
 };
 
 const PAD = { top: 16, right: 46, bottom: 24, left: 34 };
 const HEIGHT = 186;
 
-function niceDomain(values: number[]) {
+/** Coarse enough to stay readable, fine enough for a stones-and-pounds scale. */
+const STEPS = [0.2, 0.5, 1, 2, 5, 10, 20, 50];
+const TARGET_TICKS = 5;
+
+/** Keeps fractional steps free of binary floating point noise. */
+const tidy = (value: number) => Math.round(value * 1000) / 1000;
+
+/**
+ * Picks the tick step from the spread of the data rather than assuming mmHg: a
+ * blood pressure range still lands on 10, while a 12.5-13.2 stone range lands on
+ * a step that actually separates the points.
+ */
+export function niceDomain(values: number[]) {
   const min = Math.min(...values);
   const max = Math.max(...values);
-  const step = 10;
-  const lower = Math.floor((min - 6) / step) * step;
-  const upper = Math.ceil((max + 6) / step) * step;
-  return { lower, upper: upper === lower ? lower + step : upper, step };
+  const spread = max - min;
+  const step =
+    STEPS.find((candidate) => spread / candidate <= TARGET_TICKS) ??
+    STEPS[STEPS.length - 1];
+  const pad = step * 0.6;
+  const lower = tidy(Math.floor((min - pad) / step) * step);
+  const upper = tidy(Math.ceil((max + pad) / step) * step);
+  return {
+    lower,
+    upper: upper === lower ? tidy(lower + step) : upper,
+    step,
+  };
 }
 
 export default function TrendChart({
@@ -41,6 +73,7 @@ export default function TrendChart({
   positions,
   series,
   guides = [],
+  formatValue = (value) => String(Math.round(value)),
 }: Props) {
   const [width, setWidth] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -72,7 +105,8 @@ export default function TrendChart({
   const y = (v: number) => PAD.top + (1 - (v - lower) / (upper - lower)) * plotH;
 
   const ticks: number[] = [];
-  for (let v = lower; v <= upper; v += step) ticks.push(v);
+  const tickCount = Math.round((upper - lower) / step);
+  for (let i = 0; i <= tickCount; i += 1) ticks.push(tidy(lower + i * step));
 
   // A single reading has no line to draw, so points carry the chart on their own.
   const pathFor = (points: (number | null)[]) => {
@@ -151,7 +185,7 @@ export default function TrendChart({
                   fill={colors.muted}
                   textAnchor="end"
                 >
-                  {t}
+                  {formatValue(t, 'compact')}
                 </SvgText>
               </G>
             ))}
@@ -232,7 +266,7 @@ export default function TrendChart({
                   fontWeight="600"
                   fill={colors.text}
                 >
-                  {s.points[i]}
+                  {formatValue(s.points[i] as number, 'compact')}
                 </SvgText>
               );
             })}
@@ -271,7 +305,10 @@ export default function TrendChart({
         {selected == null
           ? 'Tap or drag across the chart to inspect a reading.'
           : `${labels[selected]} — ${series
-              .map((s) => `${s.label} ${s.points[selected] ?? '—'}`)
+              .map((s) => {
+                const value = s.points[selected];
+                return `${s.label} ${value == null ? '—' : formatValue(value, 'full')}`;
+              })
               .join('  ·  ')}`}
       </Text>
     </View>

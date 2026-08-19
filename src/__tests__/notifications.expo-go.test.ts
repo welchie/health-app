@@ -37,10 +37,13 @@ describe('inside Expo Go on Android', () => {
     const notifications = loadIn('android', 'storeClient');
 
     await expect(
-      notifications.scheduleDailyReminder({ enabled: true, hour: 8, minute: 0 }),
+      notifications.scheduleReminder('bp', { enabled: true, hour: 8, minute: 0 }),
     ).resolves.toBe('unsupported');
     await expect(notifications.requestPermission()).resolves.toBe(false);
-    await expect(notifications.cancelDailyReminder()).resolves.toBeUndefined();
+    await expect(notifications.cancelReminder('bp')).resolves.toBeUndefined();
+    await expect(
+      notifications.scheduleReminder('weight', { enabled: true, hour: 8, minute: 0 }),
+    ).resolves.toBe('unsupported');
   });
 });
 

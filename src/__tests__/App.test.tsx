@@ -117,17 +117,18 @@ describe('App', () => {
 
     await fireEvent.press(screen.getByText('Trends'));
 
-    // Both the screen heading and the chart heading use this name.
-    expect(screen.getAllByText('Blood pressure').length).toBe(2);
+    // The heading, the metric switcher chip and the chart heading all carry it.
+    expect(screen.getAllByText('Blood pressure')).toHaveLength(3);
+    expect(screen.getAllByText('mmHg').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Heart rate').length).toBeGreaterThan(0);
     expect(screen.queryByText('No readings in this period yet.')).toBeNull();
   });
 
   it('schedules a daily reminder when the switch is turned on', async () => {
     await openApp();
-    await fireEvent.press(screen.getByText('Reminder'));
+    await fireEvent.press(screen.getByText('Settings'));
 
-    await fireEvent(screen.getByRole('switch'), 'valueChange', true);
+    await fireEvent(screen.getByLabelText('Daily reminder'), 'valueChange', true);
 
     await waitFor(() =>
       expect(mocked.scheduleNotificationAsync).toHaveBeenCalledWith(
@@ -152,8 +153,8 @@ describe('App', () => {
       { identifier: 'queued', content: { data: { kind: 'bp-daily-reminder' } } },
     ]);
 
-    await fireEvent.press(screen.getByText('Reminder'));
-    await fireEvent(screen.getByRole('switch'), 'valueChange', false);
+    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent(screen.getByLabelText('Daily reminder'), 'valueChange', false);
 
     await waitFor(async () => {
       const raw = await AsyncStorage.getItem('bp-tracker/reminder/v1');
@@ -186,6 +187,78 @@ describe('App', () => {
     expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
   });
 
+  it('schedules a weekly weigh-in independently of the daily reminder', async () => {
+    await openApp();
+    await fireEvent.press(screen.getByText('Settings'));
+
+    await fireEvent(screen.getByLabelText('Weekly weigh-in'), 'valueChange', true);
+
+    await waitFor(() =>
+      expect(mocked.scheduleNotificationAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          trigger: { type: 'weekly', weekday: 2, hour: 8, minute: 0 },
+          content: expect.objectContaining({ title: 'Weekly weigh-in' }),
+        }),
+      ),
+    );
+    await waitFor(async () => {
+      const raw = await AsyncStorage.getItem('bp-tracker/weight-reminder/v1');
+      expect(JSON.parse(raw as string)).toMatchObject({ enabled: true, weekday: 2 });
+    });
+    // The daily blood pressure reminder was never touched.
+    await expect(AsyncStorage.getItem('bp-tracker/reminder/v1')).resolves.toBeNull();
+  });
+
+  it('lets the weigh-in day be changed', async () => {
+    await openApp();
+    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent(screen.getByLabelText('Weekly weigh-in'), 'valueChange', true);
+
+    await fireEvent.press(screen.getByText('Sat'));
+
+    await waitFor(() =>
+      expect(mocked.scheduleNotificationAsync).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          trigger: expect.objectContaining({ type: 'weekly', weekday: 7 }),
+        }),
+      ),
+    );
+  });
+
+  it('runs both reminders at once', async () => {
+    await AsyncStorage.setItem(
+      'bp-tracker/reminder/v1',
+      JSON.stringify({ enabled: true, hour: 9, minute: 0 }),
+    );
+    await AsyncStorage.setItem(
+      'bp-tracker/weight-reminder/v1',
+      JSON.stringify({ enabled: true, hour: 7, minute: 30, weekday: 6 }),
+    );
+
+    await openApp();
+
+    await waitFor(() =>
+      expect(mocked.scheduleNotificationAsync).toHaveBeenCalledTimes(2),
+    );
+    const kinds = (mocked.scheduleNotificationAsync as jest.Mock).mock.calls.map(
+      (call) => call[0].content.data.kind,
+    );
+    expect(kinds).toEqual(
+      expect.arrayContaining(['bp-daily-reminder', 'weight-weekly-reminder']),
+    );
+  });
+
+  it('hides the weigh-in day picker until it is switched on', async () => {
+    await openApp();
+    await fireEvent.press(screen.getByText('Settings'));
+
+    expect(screen.queryByText('Sat')).toBeNull();
+
+    await fireEvent(screen.getByLabelText('Weekly weigh-in'), 'valueChange', true);
+
+    expect(screen.getByText('Sat')).toBeTruthy();
+  });
+
   it('warns when the device refuses notification permission', async () => {
     (mocked.getPermissionsAsync as jest.Mock).mockResolvedValue({
       granted: false,
@@ -194,8 +267,8 @@ describe('App', () => {
     (mocked.requestPermissionsAsync as jest.Mock).mockResolvedValue({ granted: false });
 
     await openApp();
-    await fireEvent.press(screen.getByText('Reminder'));
-    await fireEvent(screen.getByRole('switch'), 'valueChange', true);
+    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent(screen.getByLabelText('Daily reminder'), 'valueChange', true);
 
     await waitFor(() =>
       expect(screen.getByText(/Notifications are blocked for this app/)).toBeTruthy(),
