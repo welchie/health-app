@@ -25,7 +25,7 @@ beforeEach(async () => {
 const openWeight = async () => {
   await render(<App />);
   await waitFor(() => expect(screen.getAllByText('Summary').length).toBeGreaterThan(0));
-  await fireEvent.press(screen.getAllByText('Log')[0]);
+  await fireEvent.press(screen.getByLabelText('Log'));
   await waitFor(() => expect(screen.getByText('New reading')).toBeTruthy());
   await fireEvent.press(screen.getAllByText('Weight')[0]);
   await waitFor(() => expect(screen.getByText('New weight')).toBeTruthy());
@@ -43,7 +43,7 @@ describe('logging a weight', () => {
   it('starts from the blood pressure form and switches to weight', async () => {
     await render(<App />);
     await waitFor(() => expect(screen.getAllByText('Summary').length).toBeGreaterThan(0));
-    await fireEvent.press(screen.getAllByText('Log')[0]);
+    await fireEvent.press(screen.getByLabelText('Log'));
     await waitFor(() => expect(screen.getByText('New reading')).toBeTruthy());
 
     await fireEvent.press(screen.getAllByText('Weight')[0]);
@@ -85,7 +85,7 @@ describe('weight trends', () => {
   it('charts and lists the weights in the period', async () => {
     await storeWeights(history);
     await openWeight();
-    await fireEvent.press(screen.getByText('Trends'));
+    await fireEvent.press(screen.getByLabelText('Trends'));
 
     expect(screen.getAllByText('Weight').length).toBeGreaterThan(0);
     expect(screen.getByText('History')).toBeTruthy();
@@ -99,7 +99,7 @@ describe('weight trends', () => {
   it('summarises the change across the period', async () => {
     await storeWeights(history);
     await openWeight();
-    await fireEvent.press(screen.getByText('Trends'));
+    await fireEvent.press(screen.getByLabelText('Trends'));
 
     expect(screen.getByText('Average over this period')).toBeTruthy();
     // Once in the period summary, once as the newest row's change.
@@ -109,7 +109,7 @@ describe('weight trends', () => {
   it('widens the period to include older weigh-ins', async () => {
     await storeWeights(history);
     await openWeight();
-    await fireEvent.press(screen.getByText('Trends'));
+    await fireEvent.press(screen.getByLabelText('Trends'));
     await fireEvent.press(screen.getByText('All'));
 
     expect(screen.getAllByText(/^13 st 3\.2 lb/).length).toBeGreaterThan(0);
@@ -119,7 +119,7 @@ describe('weight trends', () => {
   it('keeps blood pressure trends on their own side of the switcher', async () => {
     await storeWeights(history);
     await openWeight();
-    await fireEvent.press(screen.getByText('Trends'));
+    await fireEvent.press(screen.getByLabelText('Trends'));
 
     expect(screen.queryByText('Heart rate')).toBeNull();
 
@@ -136,9 +136,9 @@ describe('the unit preference', () => {
     await openWeight();
     expect(screen.getAllByText('12 st 11.0 lb').length).toBeGreaterThan(0);
 
-    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent.press(screen.getByLabelText('Settings'));
     await fireEvent.press(screen.getByText('kg'));
-    await fireEvent.press(screen.getByText('Log'));
+    await fireEvent.press(screen.getByLabelText('Log'));
 
     expect(screen.getAllByText('81.2 kg').length).toBeGreaterThan(0);
     expect(screen.queryByText('12 st 11.0 lb')).toBeNull();
@@ -174,7 +174,7 @@ describe('deleting a weight', () => {
   it('removes it and forgets it', async () => {
     await storeWeights([history[2]]);
     await openWeight();
-    await fireEvent.press(screen.getByText('Trends'));
+    await fireEvent.press(screen.getByLabelText('Trends'));
 
     const { Alert } = require('react-native');
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});

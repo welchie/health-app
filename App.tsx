@@ -14,6 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 import ReadingForm from './src/components/ReadingForm';
 import ReadingList from './src/components/ReadingList';
 import ReminderCard from './src/components/ReminderCard';
+import TabIcon, { TabIconName } from './src/components/TabIcon';
 import TrendChart, { Series } from './src/components/TrendChart';
 import UnitChips from './src/components/UnitChips';
 import WeightForm from './src/components/WeightForm';
@@ -651,11 +652,15 @@ export default function App() {
                 style={styles.tabItem}
                 onPress={() => setTab(key)}
                 accessibilityRole="tab"
+                // The icons carry no text, so the label lives here for
+                // screen readers.
+                accessibilityLabel={label}
                 accessibilityState={{ selected: tab === key }}
               >
-                <Text style={[styles.tabText, tab === key && styles.tabTextActive]}>
-                  {label}
-                </Text>
+                <TabIcon
+                  name={key as TabIconName}
+                  color={tab === key ? colors.text : colors.muted}
+                />
                 {tab === key && <View style={styles.tabUnderline} />}
               </TouchableOpacity>
             ))}
@@ -879,9 +884,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     backgroundColor: colors.card,
   },
-  tabItem: { flex: 1, alignItems: 'center', paddingTop: 12, paddingBottom: 14 },
-  tabText: { fontSize: 13, fontWeight: '600', color: colors.muted },
-  tabTextActive: { color: colors.text },
+  tabItem: { flex: 1, alignItems: 'center', paddingTop: 10, paddingBottom: 12 },
   tabUnderline: {
     position: 'absolute',
     top: 0,
