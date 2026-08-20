@@ -1,5 +1,5 @@
 import React from 'react';
-import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Line, Path } from 'react-native-svg';
 
 export type TabIconName = 'summary' | 'log' | 'trends' | 'settings';
 
@@ -25,12 +25,12 @@ export default function TabIcon({ name, color, size = 24 }: Props) {
 
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
+      {/* Keyed by tab, so this stays 'summary' while drawing a house. */}
       {name === 'summary' && (
         <>
-          <Rect x={3} y={3} width={8} height={8} rx={2} {...common} />
-          <Rect x={13} y={3} width={8} height={8} rx={2} {...common} />
-          <Rect x={3} y={13} width={8} height={8} rx={2} {...common} />
-          <Rect x={13} y={13} width={8} height={8} rx={2} {...common} />
+          <Path d="M3 11.5 L12 4 L21 11.5" {...common} />
+          <Path d="M5.5 10 V20 H18.5 V10" {...common} />
+          <Path d="M10 20 V14 H14 V20" {...common} />
         </>
       )}
 
