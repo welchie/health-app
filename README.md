@@ -132,7 +132,11 @@ while blood pressure keeps its familiar 10 mmHg ticks.
 npm test
 ```
 
-196 tests across thirteen suites (`jest-expo` + React Native Testing Library):
+202 tests across fourteen suites (`jest-expo` + React Native Testing Library):
+
+### Registry and Lockfile Safety
+
+This project enforces the use of the public npm registry (`https://registry.npmjs.org/`) via the project-level `.npmrc`. A validation script (`scripts/check-lockfile.js`) is run automatically as part of `npm test` to prevent private registry URLs from being committed in `package-lock.json`.
 
 - `bp.test.ts` — band boundaries (119/79 vs 120/79 vs 130/80 …), averages with
   missing pulses, date-window filtering, ordering, date formatting
