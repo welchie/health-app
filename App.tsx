@@ -19,6 +19,8 @@ import TrendChart, { Series } from './src/components/TrendChart';
 import UnitChips from './src/components/UnitChips';
 import WeightForm from './src/components/WeightForm';
 import WeightList from './src/components/WeightList';
+import MedicationForm from './src/components/MedicationForm';
+import MedicationList from './src/components/MedicationList';
 import {
   averageOf,
   categorise,
@@ -32,6 +34,9 @@ import {
   remindersSupported,
   ScheduleResult,
   scheduleReminder,
+  cancelMedicationReminders,
+  scheduleMedicationReminders,
+  rearmAllMedicationReminders,
 } from './src/notifications';
 import {
   loadReadings,
@@ -44,6 +49,8 @@ import {
   saveWeightReminder,
   saveWeights,
   saveWeightUnit,
+  loadMedications,
+  saveMedications,
 } from './src/storage';
 import { categoryColors, colors } from './src/theme';
 import {
@@ -54,6 +61,7 @@ import {
   ReminderSettings,
   WeightEntry,
   WeightUnit,
+  MedicationReminder,
 } from './src/types';
 import {
   averageGrams,
@@ -66,7 +74,7 @@ import {
   weightChange,
 } from './src/weight';
 
-type Tab = 'summary' | 'log' | 'trends' | 'settings';
+type Tab = 'summary' | 'log' | 'trends' | 'meds' | 'settings';
 type Metric = 'bp' | 'weight';
 type ReminderProblem = 'denied' | 'unsupported' | null;
 
@@ -85,6 +93,9 @@ export default function App() {
   );
   const [weights, setWeights] = useState<WeightEntry[]>([]);
   const [weightUnit, setWeightUnit] = useState<WeightUnit>(defaultWeightUnit);
+  const [medications, setMedications] = useState<MedicationReminder[]>([]);
+  const [editingMedication, setEditingMedication] = useState<MedicationReminder | null>(null);
+  const [showMedicationForm, setShowMedicationForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('summary');
   const [metric, setMetric] = useState<Metric>('bp');
@@ -98,18 +109,21 @@ export default function App() {
         storedWeights,
         storedUnit,
         storedWeightReminder,
+        storedMedications,
       ] = await Promise.all([
         loadReadings(),
         loadReminder(),
         loadWeights(),
         loadWeightUnit(),
         loadWeightReminder(),
+        loadMedications(),
       ]);
       setReadings(storedReadings);
       setReminder(storedReminder);
       setWeights(storedWeights);
       setWeightUnit(storedUnit);
       setWeightReminder(storedWeightReminder);
+      setMedications(storedMedications);
       setLoading(false);
 
       // Re-arm on launch: the OS drops scheduled notifications after some
@@ -121,6 +135,15 @@ export default function App() {
         setReminderProblem(
           problemFrom(await scheduleReminder('weight', storedWeightReminder)),
         );
+      }
+      for (const med of storedMedications) {
+        if (med.enabled) {
+          const res = await scheduleMedicationReminders(med);
+          const prob = problemFrom(res);
+          if (prob) {
+            setReminderProblem(prob);
+          }
+        }
       }
     })();
   }, []);
@@ -172,6 +195,39 @@ export default function App() {
       await saveWeightReminder(next);
     }
     setReminderProblem(problemFrom(await scheduleReminder(kind, next)));
+  };
+
+  const addMedication = async (med: Omit<MedicationReminder, 'id'>) => {
+    const next = [...medications, { ...med, id: `${Date.now()}` }];
+    setMedications(next);
+    await saveMedications(next);
+    const scheduled = next[next.length - 1];
+    setReminderProblem(problemFrom(await scheduleMedicationReminders(scheduled)));
+    setShowMedicationForm(false);
+  };
+
+  const updateMedication = async (med: MedicationReminder) => {
+    const next = medications.map((m) => (m.id === med.id ? med : m));
+    setMedications(next);
+    await saveMedications(next);
+    setReminderProblem(problemFrom(await scheduleMedicationReminders(med)));
+    setEditingMedication(null);
+    setShowMedicationForm(false);
+  };
+
+  const deleteMedication = async (id: string) => {
+    const next = medications.filter((m) => m.id !== id);
+    setMedications(next);
+    await saveMedications(next);
+    await cancelMedicationReminders(id);
+  };
+
+  const toggleMedication = async (med: MedicationReminder, enabled: boolean) => {
+    const updated = { ...med, enabled };
+    const next = medications.map((m) => (m.id === med.id ? updated : m));
+    setMedications(next);
+    await saveMedications(next);
+    setReminderProblem(problemFrom(await scheduleMedicationReminders(updated)));
   };
 
   const newestWeights = useMemo(() => sortByNewest(weights), [weights]);
@@ -270,6 +326,11 @@ export default function App() {
                 <Text style={styles.appTitle}>Summary</Text>
                 <Text style={styles.appSubtitle}>Overview of your health metrics</Text>
               </>
+            ) : tab === 'meds' ? (
+              <>
+                <Text style={styles.appTitle}>Medications</Text>
+                <Text style={styles.appSubtitle}>Manage your medication reminders</Text>
+              </>
             ) : (
               <>
                 <Text style={styles.appTitle}>
@@ -290,7 +351,7 @@ export default function App() {
               </>
             )}
 
-            {tab !== 'settings' && tab !== 'summary' && (
+            {tab !== 'settings' && tab !== 'summary' && tab !== 'meds' && (
               <View style={styles.rangeRow}>
                 {(
                   [
@@ -577,6 +638,56 @@ export default function App() {
               </>
             )}
 
+            {tab === 'meds' && (
+              <>
+                {reminderProblem === 'denied' && (
+                  <Text style={styles.notice}>
+                    Notifications are blocked for this app. Enable them in your device
+                    settings to get these reminders.
+                  </Text>
+                )}
+
+                {reminderProblem === 'unsupported' && (
+                  <Text style={styles.notice}>
+                    Expo Go on Android cannot schedule notifications. Your choices are
+                    saved, and reminders will start working in a development build (npx
+                    expo run:android).
+                  </Text>
+                )}
+
+                {showMedicationForm ? (
+                  <MedicationForm
+                    initialData={editingMedication}
+                    onSave={(med) => {
+                      if (editingMedication) {
+                        updateMedication({ ...editingMedication, ...med });
+                      } else {
+                        addMedication(med);
+                      }
+                    }}
+                    onCancel={() => {
+                      setEditingMedication(null);
+                      setShowMedicationForm(false);
+                    }}
+                  />
+                ) : (
+                  <MedicationList
+                    medications={medications}
+                    onEdit={(med) => {
+                      setEditingMedication(med);
+                      setShowMedicationForm(true);
+                    }}
+                    onDelete={deleteMedication}
+                    onToggle={toggleMedication}
+                    onAdd={() => {
+                      setEditingMedication(null);
+                      setShowMedicationForm(true);
+                    }}
+                  />
+                )}
+              </>
+            )}
+
             {tab === 'settings' && (
               <>
                 <View style={styles.card}>
@@ -644,6 +755,7 @@ export default function App() {
                 ['summary', 'Summary'],
                 ['log', 'Log'],
                 ['trends', 'Trends'],
+                ['meds', 'Meds'],
                 ['settings', 'Settings'],
               ] as [Tab, string][]
             ).map(([key, label]) => (

@@ -7,6 +7,7 @@ import {
   ReminderSettings,
   WeightEntry,
   WeightUnit,
+  MedicationReminder,
 } from './types';
 
 // Renamed with the app. Safe to do because the Android package and iOS bundle id
@@ -17,6 +18,8 @@ const REMINDER_KEY = 'health-app/reminder/v1';
 const WEIGHTS_KEY = 'health-app/weights/v1';
 const WEIGHT_UNIT_KEY = 'health-app/units/v1';
 const WEIGHT_REMINDER_KEY = 'health-app/weight-reminder/v1';
+const MEDICATIONS_KEY = 'health-app/medications/v1';
+
 
 export async function loadReadings(): Promise<Reading[]> {
   const raw = await AsyncStorage.getItem(READINGS_KEY);
@@ -84,3 +87,19 @@ export async function loadWeightReminder(): Promise<ReminderSettings> {
 export async function saveWeightReminder(settings: ReminderSettings) {
   await AsyncStorage.setItem(WEIGHT_REMINDER_KEY, JSON.stringify(settings));
 }
+
+export async function loadMedications(): Promise<MedicationReminder[]> {
+  const raw = await AsyncStorage.getItem(MEDICATIONS_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as MedicationReminder[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveMedications(meds: MedicationReminder[]) {
+  await AsyncStorage.setItem(MEDICATIONS_KEY, JSON.stringify(meds));
+}
+

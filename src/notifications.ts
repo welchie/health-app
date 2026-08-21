@@ -1,6 +1,6 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
-import { ReminderSettings } from './types';
+import { ReminderSettings, MedicationReminder } from './types';
 
 export type ReminderKind = 'bp' | 'weight';
 
@@ -145,3 +145,66 @@ export async function scheduleReminder(
   });
   return 'scheduled';
 }
+
+export async function cancelMedicationReminders(medicationId: string) {
+  const notifications = getNotifications();
+  if (!notifications) return;
+
+  const scheduled = await notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    scheduled
+      .filter((n) => n.content.data?.medicationId === medicationId)
+      .map((n) => notifications.cancelScheduledNotificationAsync(n.identifier)),
+  );
+}
+
+export async function scheduleMedicationReminders(
+  medication: MedicationReminder,
+): Promise<ScheduleResult> {
+  const notifications = getNotifications();
+  if (!notifications) return 'unsupported';
+
+  await cancelMedicationReminders(medication.id);
+  if (!medication.enabled) return 'cancelled';
+
+  const allowed = await requestPermission();
+  if (!allowed) return 'denied';
+
+  await Promise.all(
+    medication.times.map((time, index) =>
+      notifications.scheduleNotificationAsync({
+        identifier: `med-${medication.id}-${index}`,
+        content: {
+          title: `Medication: ${medication.name}`,
+          body: medication.instruction
+            ? `Time to take your medication (${medication.instruction}).`
+            : 'Time to take your medication.',
+          data: { kind: 'medication', medicationId: medication.id, timeIndex: index },
+          ...(Platform.OS === 'android' ? { channelId: 'reminders' } : null),
+        },
+        trigger: {
+          type: notifications.SchedulableTriggerInputTypes.DAILY,
+          hour: time.hour,
+          minute: time.minute,
+        },
+      }),
+    ),
+  );
+  return 'scheduled';
+}
+
+export async function rearmAllMedicationReminders(
+  medications: MedicationReminder[],
+): Promise<void> {
+  const notifications = getNotifications();
+  if (!notifications) return;
+
+  for (const med of medications) {
+    if (med.enabled) {
+      await scheduleMedicationReminders(med);
+    } else {
+      await cancelMedicationReminders(med.id);
+    }
+  }
+}
+

@@ -1,7 +1,7 @@
 /** The weight half of the app, end to end. */
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import App from '../../App';
 import { WeightEntry } from '../types';
 
@@ -180,7 +180,9 @@ describe('deleting a weight', () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     await fireEvent(screen.getByTestId('weight-row-w3'), 'longPress');
     const buttons = alert.mock.calls[0][2] as { text: string; onPress?: () => void }[];
-    await buttons.find((b) => b.text === 'Delete')?.onPress?.();
+    await act(async () => {
+      await buttons.find((b) => b.text === 'Delete')?.onPress?.();
+    });
 
     await waitFor(() => expect(screen.getByText('No weights logged yet.')).toBeTruthy());
     await waitFor(async () => {

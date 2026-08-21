@@ -1,6 +1,13 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { cancelReminder, requestPermission, scheduleReminder } from '../notifications';
+import {
+  cancelReminder,
+  requestPermission,
+  scheduleReminder,
+  cancelMedicationReminders,
+  scheduleMedicationReminders,
+  rearmAllMedicationReminders,
+} from '../notifications';
 
 const mocked = Notifications as jest.Mocked<typeof Notifications>;
 
@@ -189,3 +196,93 @@ describe('the two reminders coexisting', () => {
     expect(mocked.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('medication reminders notifications', () => {
+  const med = {
+    id: 'med-aspirin',
+    name: 'Aspirin',
+    enabled: true,
+    times: [
+      { hour: 8, minute: 0 },
+      { hour: 20, minute: 0 },
+    ],
+    instruction: 'After food',
+  };
+
+  it('schedules daily repeating notifications for each time slot', async () => {
+    const res = await scheduleMedicationReminders(med);
+    expect(res).toBe('scheduled');
+    expect(mocked.scheduleNotificationAsync).toHaveBeenCalledTimes(2);
+    expect(mocked.scheduleNotificationAsync).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        identifier: 'med-med-aspirin-0',
+        trigger: { type: 'daily', hour: 8, minute: 0 },
+        content: expect.objectContaining({
+          title: 'Medication: Aspirin',
+          body: 'Time to take your medication (After food).',
+        }),
+      }),
+    );
+    expect(mocked.scheduleNotificationAsync).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        identifier: 'med-med-aspirin-1',
+        trigger: { type: 'daily', hour: 20, minute: 0 },
+      }),
+    );
+  });
+
+  it('cancels all existing scheduled reminders for that medication ID first', async () => {
+    (mocked.getAllScheduledNotificationsAsync as jest.Mock).mockResolvedValue([
+      { identifier: 'med-med-aspirin-0', content: { data: { medicationId: 'med-aspirin' } } },
+      { identifier: 'med-med-aspirin-1', content: { data: { medicationId: 'med-aspirin' } } },
+      { identifier: 'someone-elses-med', content: { data: { medicationId: 'other-med' } } },
+    ]);
+
+    await scheduleMedicationReminders(med);
+
+    expect(mocked.cancelScheduledNotificationAsync).toHaveBeenCalledTimes(2);
+    expect(mocked.cancelScheduledNotificationAsync).toHaveBeenCalledWith('med-med-aspirin-0');
+    expect(mocked.cancelScheduledNotificationAsync).toHaveBeenCalledWith('med-med-aspirin-1');
+    expect(mocked.cancelScheduledNotificationAsync).not.toHaveBeenCalledWith('someone-elses-med');
+  });
+
+  it('schedules nothing when enabled is false, but cancels existing', async () => {
+    (mocked.getAllScheduledNotificationsAsync as jest.Mock).mockResolvedValue([
+      { identifier: 'med-med-aspirin-0', content: { data: { medicationId: 'med-aspirin' } } },
+    ]);
+
+    const res = await scheduleMedicationReminders({ ...med, enabled: false });
+
+    expect(res).toBe('cancelled');
+    expect(mocked.cancelScheduledNotificationAsync).toHaveBeenCalledTimes(1);
+    expect(mocked.cancelScheduledNotificationAsync).toHaveBeenCalledWith('med-med-aspirin-0');
+    expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  it('rearms all active medication reminders and cancels inactive ones', async () => {
+    const list = [
+      { id: 'm1', name: 'Metformin', enabled: true, times: [{ hour: 8, minute: 0 }], instruction: '' },
+      { id: 'm2', name: 'Aspirin', enabled: false, times: [{ hour: 20, minute: 0 }], instruction: '' },
+    ];
+    (mocked.getAllScheduledNotificationsAsync as jest.Mock).mockResolvedValue([
+      { identifier: 'med-m2-0', content: { data: { medicationId: 'm2' } } },
+    ]);
+
+    await rearmAllMedicationReminders(list);
+
+    // Should cancel existing for m2 (disabled)
+    expect(mocked.cancelScheduledNotificationAsync).toHaveBeenCalledWith('med-m2-0');
+    // Should schedule notification for m1 (enabled)
+    expect(mocked.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
+    expect(mocked.scheduleNotificationAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        identifier: 'med-m1-0',
+        trigger: { type: 'daily', hour: 8, minute: 0 },
+      }),
+    );
+  });
+});
+
+

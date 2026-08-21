@@ -1,7 +1,7 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import App from '../../App';
 import { Reading } from '../types';
 
@@ -285,7 +285,9 @@ describe('App', () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     await fireEvent(screen.getByText(/^118\/76/), 'longPress');
     const buttons = alert.mock.calls[0][2] as { text: string; onPress?: () => void }[];
-    await buttons.find((b) => b.text === 'Delete')?.onPress?.();
+    await act(async () => {
+      await buttons.find((b) => b.text === 'Delete')?.onPress?.();
+    });
 
     await waitFor(() => expect(screen.getByText('Nothing logged yet.')).toBeTruthy());
     await waitFor(async () => {
@@ -294,4 +296,51 @@ describe('App', () => {
     });
     alert.mockRestore();
   });
+
+  it('allows end-to-end management of medication reminders', async () => {
+    await openApp();
+    await fireEvent.press(screen.getByLabelText('Meds'));
+
+    // Verify empty state
+    await waitFor(() =>
+      expect(screen.getByText('No medication reminders set up yet.')).toBeTruthy(),
+    );
+
+    // Add reminder
+    await fireEvent.press(screen.getByText('Set up medication reminder'));
+    await fireEvent.changeText(screen.getByLabelText('Medication name'), 'Metformin');
+    await fireEvent.press(screen.getByLabelText('Set instruction to After food'));
+    await fireEvent.press(screen.getByText('Save reminder'));
+
+    // Verify in list
+    await waitFor(() => expect(screen.getByText('Metformin')).toBeTruthy());
+    expect(screen.getByText('Take: After food')).toBeTruthy();
+
+    // Toggle reminder
+    await fireEvent(screen.getByLabelText('Toggle reminder for Metformin'), 'valueChange', false);
+
+    // Edit reminder
+    await fireEvent.press(screen.getByLabelText('Edit Metformin'));
+    await fireEvent.changeText(screen.getByLabelText('Medication name'), 'Metformin 500mg');
+    await fireEvent.press(screen.getByText('Save reminder'));
+
+    // Verify update
+    await waitFor(() => expect(screen.getByText('Metformin 500mg')).toBeTruthy());
+
+    // Delete reminder
+    const { Alert } = require('react-native');
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    await fireEvent.press(screen.getByLabelText('Delete Metformin 500mg'));
+    
+    const buttons = alert.mock.calls[0][2] as { text: string; onPress?: () => void }[];
+    await act(async () => {
+      await buttons.find((b) => b.text === 'Delete')?.onPress?.();
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText('No medication reminders set up yet.')).toBeTruthy(),
+    );
+    alert.mockRestore();
+  });
 });
+

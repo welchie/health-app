@@ -4,7 +4,7 @@ import React from 'react';
 // into the bundle instead of the 348KB this family needs.
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-export type TabIconName = 'summary' | 'log' | 'trends' | 'settings';
+export type TabIconName = 'summary' | 'log' | 'trends' | 'meds' | 'settings';
 
 type Props = {
   name: TabIconName;
@@ -23,8 +23,10 @@ const GLYPHS: Record<TabIconName, React.ComponentProps<typeof MaterialIcons>['na
   summary: 'home',
   log: 'add-circle',
   trends: 'insert-chart',
+  meds: 'medical-services',
   settings: 'settings',
 };
+
 
 export default function TabIcon({ name, color, size = 24 }: Props) {
   return <MaterialIcons name={GLYPHS[name]} size={size} color={color} />;

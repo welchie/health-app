@@ -49,3 +49,12 @@ export const defaultWeightReminder: ReminderSettings = {
   minute: 0,
   weekday: 2,
 };
+
+export type MedicationReminder = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  times: { hour: number; minute: number }[];
+  instruction: string;
+};
+
