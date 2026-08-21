@@ -11,6 +11,7 @@ const EXPECTED: Record<TabIconName, string> = {
   summary: 'home',
   log: 'add-circle',
   trends: 'insert-chart',
+  meds: 'medical-services',
   settings: 'settings',
 };
 
@@ -44,7 +45,7 @@ describe('TabIcon', () => {
   );
 
   it('covers every tab, so a new tab cannot ship without an icon', () => {
-    const names: TabIconName[] = ['summary', 'log', 'trends', 'settings'];
+    const names: TabIconName[] = ['summary', 'log', 'trends', 'meds', 'settings'];
 
     expect(Object.keys(EXPECTED).sort()).toEqual([...names].sort());
   });

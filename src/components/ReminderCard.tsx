@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Platform, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { formatClock } from '../bp';
 import { colors } from '../theme';
 import { ReminderSettings } from '../types';
@@ -29,10 +29,14 @@ export default function ReminderCard({
   const time = new Date();
   time.setHours(settings.hour, settings.minute, 0, 0);
 
-  const onTimeChange = (event: DateTimePickerEvent, date?: Date) => {
+  const onTimeValueChange = (event: DateTimePickerChangeEvent, date: Date) => {
     if (Platform.OS === 'android') setPicking(false);
-    if (event.type === 'dismissed' || !date) return;
+    if (!date) return;
     onChange({ ...settings, hour: date.getHours(), minute: date.getMinutes() });
+  };
+
+  const onTimeDismiss = () => {
+    if (Platform.OS === 'android') setPicking(false);
   };
 
   return (
@@ -79,7 +83,8 @@ export default function ReminderCard({
               value={time}
               mode="time"
               display="compact"
-              onChange={onTimeChange}
+              onValueChange={onTimeValueChange}
+              onDismiss={onTimeDismiss}
             />
           ) : (
             <TouchableOpacity style={styles.timeButton} onPress={() => setPicking(true)}>
@@ -92,7 +97,13 @@ export default function ReminderCard({
       )}
 
       {picking && Platform.OS === 'android' && (
-        <DateTimePicker value={time} mode="time" display="clock" onChange={onTimeChange} />
+        <DateTimePicker
+          value={time}
+          mode="time"
+          display="clock"
+          onValueChange={onTimeValueChange}
+          onDismiss={onTimeDismiss}
+        />
       )}
     </View>
   );

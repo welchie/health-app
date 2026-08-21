@@ -10,12 +10,15 @@ import {
   saveWeightReminder,
   saveWeights,
   saveWeightUnit,
+  loadMedications,
+  saveMedications,
 } from '../storage';
 import {
   defaultReminder,
   defaultWeightReminder,
   Reading,
   WeightEntry,
+  MedicationReminder,
 } from '../types';
 
 const sample: Reading[] = [
@@ -153,3 +156,35 @@ describe('weight reminder storage', () => {
     });
   });
 });
+
+const sampleMedications: MedicationReminder[] = [
+  {
+    id: 'm1',
+    name: 'Aspirin',
+    enabled: true,
+    times: [{ hour: 8, minute: 30 }],
+    instruction: 'After food',
+  },
+];
+
+describe('medication storage', () => {
+  it('returns an empty list before anything is saved', async () => {
+    await expect(loadMedications()).resolves.toEqual([]);
+  });
+
+  it('round-trips medications', async () => {
+    await saveMedications(sampleMedications);
+    await expect(loadMedications()).resolves.toEqual(sampleMedications);
+  });
+
+  it('survives corrupted storage instead of throwing', async () => {
+    await AsyncStorage.setItem('health-app/medications/v1', '{not json');
+    await expect(loadMedications()).resolves.toEqual([]);
+  });
+
+  it('ignores stored values that are not a list', async () => {
+    await AsyncStorage.setItem('health-app/medications/v1', '{"name":"Aspirin"}');
+    await expect(loadMedications()).resolves.toEqual([]);
+  });
+});
+
