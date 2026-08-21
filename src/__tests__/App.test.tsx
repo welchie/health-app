@@ -32,7 +32,7 @@ beforeEach(async () => {
 const openApp = async () => {
   await render(<App />);
   await waitFor(() => expect(screen.getAllByText('Summary').length).toBeGreaterThan(0));
-  await fireEvent.press(screen.getAllByText('Log')[0]);
+  await fireEvent.press(screen.getByLabelText('Log'));
   await waitFor(() => expect(screen.getByText('New reading')).toBeTruthy());
 };
 
@@ -89,7 +89,7 @@ describe('App', () => {
     expect(screen.getByText('121')).toBeTruthy();
     expect(screen.getByText('78')).toBeTruthy();
 
-    await fireEvent.press(screen.getByText('Trends'));
+    await fireEvent.press(screen.getByLabelText('Trends'));
     await fireEvent.press(screen.getByText('All'));
 
     expect(screen.getByText('131')).toBeTruthy();
@@ -100,7 +100,7 @@ describe('App', () => {
     await stored(history);
     await openApp();
 
-    await fireEvent.press(screen.getByText('Trends'));
+    await fireEvent.press(screen.getByLabelText('Trends'));
 
     expect(screen.getByText('History')).toBeTruthy();
     expect(screen.getByText(/^118\/76/)).toBeTruthy();
@@ -116,7 +116,7 @@ describe('App', () => {
     await stored(history);
     await openApp();
 
-    await fireEvent.press(screen.getByText('Trends'));
+    await fireEvent.press(screen.getByLabelText('Trends'));
 
     // The heading, the metric switcher chip and the chart heading all carry it.
     expect(screen.getAllByText('Blood pressure')).toHaveLength(3);
@@ -127,7 +127,7 @@ describe('App', () => {
 
   it('schedules a daily reminder when the switch is turned on', async () => {
     await openApp();
-    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent.press(screen.getByLabelText('Settings'));
 
     await fireEvent(screen.getByLabelText('Daily reminder'), 'valueChange', true);
 
@@ -154,7 +154,7 @@ describe('App', () => {
       { identifier: 'queued', content: { data: { kind: 'bp-daily-reminder' } } },
     ]);
 
-    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent.press(screen.getByLabelText('Settings'));
     await fireEvent(screen.getByLabelText('Daily reminder'), 'valueChange', false);
 
     await waitFor(async () => {
@@ -190,7 +190,7 @@ describe('App', () => {
 
   it('schedules a weekly weigh-in independently of the daily reminder', async () => {
     await openApp();
-    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent.press(screen.getByLabelText('Settings'));
 
     await fireEvent(screen.getByLabelText('Weekly weigh-in'), 'valueChange', true);
 
@@ -212,7 +212,7 @@ describe('App', () => {
 
   it('lets the weigh-in day be changed', async () => {
     await openApp();
-    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent.press(screen.getByLabelText('Settings'));
     await fireEvent(screen.getByLabelText('Weekly weigh-in'), 'valueChange', true);
 
     await fireEvent.press(screen.getByText('Sat'));
@@ -251,7 +251,7 @@ describe('App', () => {
 
   it('hides the weigh-in day picker until it is switched on', async () => {
     await openApp();
-    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent.press(screen.getByLabelText('Settings'));
 
     expect(screen.queryByText('Sat')).toBeNull();
 
@@ -268,7 +268,7 @@ describe('App', () => {
     (mocked.requestPermissionsAsync as jest.Mock).mockResolvedValue({ granted: false });
 
     await openApp();
-    await fireEvent.press(screen.getByText('Settings'));
+    await fireEvent.press(screen.getByLabelText('Settings'));
     await fireEvent(screen.getByLabelText('Daily reminder'), 'valueChange', true);
 
     await waitFor(() =>
@@ -279,7 +279,7 @@ describe('App', () => {
   it('deletes a reading and forgets it', async () => {
     await stored([history[2]]);
     await openApp();
-    await fireEvent.press(screen.getByText('Trends'));
+    await fireEvent.press(screen.getByLabelText('Trends'));
 
     const { Alert } = require('react-native');
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
