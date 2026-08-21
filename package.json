@@ -5,8 +5,8 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "@react-native-community/datetimepicker": "9.1.0",
-    "expo": "~57.0.12",
+    "@react-native-community/datetimepicker": "^8.1.1",
+    "expo": "^57.0.12",
     "expo-asset": "~57.0.13",
     "expo-constants": "~57.0.12",
     "expo-device": "~57.0.1",
@@ -31,12 +31,16 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "jest",
+    "check-lockfile": "node scripts/check-lockfile.js",
+    "test": "npm run check-lockfile && jest",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
     "postinstall": "patch-package"
   },
   "private": true,
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
   "jest": {
     "preset": "jest-expo",
     "setupFilesAfterEnv": [
