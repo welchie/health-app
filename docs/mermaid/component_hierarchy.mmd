@@ -1,0 +1,26 @@
+graph TD
+    App["App (App.tsx)"] --> Summary["Summary Tab"]
+    App --> Log["Log Tab"]
+    App --> Trends["Trends Tab"]
+    App --> Meds["Meds Tab"]
+    App --> Settings["Settings Tab"]
+    
+    Summary --> GridPanel["GridPanel (BP & Weight Avg)"]
+    Summary --> WeightGrid["WeightGrid (weigh-in summary)"]
+    
+    Log --> ReadingForm["ReadingForm"]
+    Log --> WeightForm["WeightForm"]
+    ReadingForm --> NumberField["NumberField"]
+    WeightForm --> NumberField
+    
+    Trends --> RangeRow["Range Selector (7d / 30d / All)"]
+    Trends --> TrendChart["TrendChart (SVG Chart & touch readout)"]
+    Trends --> ReadingList["ReadingList"]
+    Trends --> WeightList["WeightList"]
+    
+    Meds --> MedicationForm["MedicationForm (DateTimePicker, suggest chips)"]
+    Meds --> MedicationList["MedicationList"]
+    
+    Settings --> UnitChips["UnitChips (st_lb / kg)"]
+    Settings --> ReminderCard["ReminderCard"]
+    ReminderCard --> DateTimePicker["DateTimePicker"]

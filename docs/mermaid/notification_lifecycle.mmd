@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    actor User as User Action
+    participant App as App.tsx
+    participant Note as src/notifications.ts
+    participant Expo as expo-notifications (OS Native)
+
+    Note->>Note: Check Platform (Android Expo Go Guard)
+    alt Android && Expo Go (SDK 53+)
+        Note-->>App: Return 'unsupported' status
+        Note-->>App: Skip importing expo-notifications (prevent crash)
+    else Supported Platform (iOS or Android Dev Build)
+        User->>App: Toggle / Update Reminder Settings
+        App->>Note: scheduleReminder(kind, settings) / scheduleMedicationReminders(med)
+        Note->>Note: Check & request local notification permissions
+        alt Permissions Denied
+            Note-->>App: Return 'denied' status
+        else Permissions Granted
+            Note->>Expo: Get all scheduled notifications
+            Note->>Expo: Cancel previous matching reminders
+            alt Settings.enabled == true
+                Note->>Expo: Schedule Daily (BP/Meds) or Weekly (Weight) trigger
+                Note-->>App: Return 'scheduled' status
+            else Settings.enabled == false
+                Note-->>App: Return 'cancelled' status
+            end
+        end
+    end
