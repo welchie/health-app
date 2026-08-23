@@ -111,7 +111,6 @@ Stores configured medication reminder alerts.
     ```
 
 ---
-
 ## Notification Scheduling Lifecycle
 
 Reminders utilize local OS alarms. Since Android Expo Go SDK 53+ lacks support for `expo-notifications`, a runtime guard is used to lazily import the notification module only where supported, preserving core application functionality on Android Expo Go.
