@@ -19,9 +19,10 @@ const WEIGHTS_KEY = 'health-app/weights/v1';
 const WEIGHT_UNIT_KEY = 'health-app/units/v1';
 const WEIGHT_REMINDER_KEY = 'health-app/weight-reminder/v1';
 const MEDICATIONS_KEY = 'health-app/medications/v1';
+const DEVICE_TOKEN_KEY = 'health-app/device-token/v1';
 
 
-export async function loadReadings(): Promise<BloodPressureReading[]> {
+export async function loadRawReadings(): Promise<BloodPressureReading[]> {
   const raw = await AsyncStorage.getItem(READINGS_KEY);
   if (!raw) return [];
   try {
@@ -32,8 +33,33 @@ export async function loadReadings(): Promise<BloodPressureReading[]> {
   }
 }
 
-export async function saveReadings(readings: BloodPressureReading[]) {
+export async function saveRawReadings(readings: BloodPressureReading[]) {
   await AsyncStorage.setItem(READINGS_KEY, JSON.stringify(readings));
+}
+
+export async function loadReadings(): Promise<BloodPressureReading[]> {
+  const raw = await loadRawReadings();
+  return raw.filter((r) => !r.deleted);
+}
+
+export async function saveReadings(readings: BloodPressureReading[]) {
+  const raw = await loadRawReadings();
+  const deleted = raw.filter((r) => r.deleted);
+
+  const nextReadings = readings.map((r) => {
+    if (r.updatedAt !== undefined && r.synced !== undefined) {
+      return r;
+    }
+    return {
+      ...r,
+      updatedAt: new Date().toISOString(),
+      synced: false,
+      deleted: false,
+    };
+  });
+
+  const combined = [...nextReadings, ...deleted];
+  await saveRawReadings(combined);
 }
 
 export async function loadReminder(): Promise<ReminderSettings> {
@@ -50,7 +76,7 @@ export async function saveReminder(settings: ReminderSettings) {
   await AsyncStorage.setItem(REMINDER_KEY, JSON.stringify(settings));
 }
 
-export async function loadWeights(): Promise<WeightEntry[]> {
+export async function loadRawWeights(): Promise<WeightEntry[]> {
   const raw = await AsyncStorage.getItem(WEIGHTS_KEY);
   if (!raw) return [];
   try {
@@ -61,8 +87,65 @@ export async function loadWeights(): Promise<WeightEntry[]> {
   }
 }
 
-export async function saveWeights(weights: WeightEntry[]) {
+export async function saveRawWeights(weights: WeightEntry[]) {
   await AsyncStorage.setItem(WEIGHTS_KEY, JSON.stringify(weights));
+}
+
+export async function loadWeights(): Promise<WeightEntry[]> {
+  const raw = await loadRawWeights();
+  return raw.filter((w) => !w.deleted);
+}
+
+export async function saveWeights(weights: WeightEntry[]) {
+  const raw = await loadRawWeights();
+  const deleted = raw.filter((w) => w.deleted);
+
+  const nextWeights = weights.map((w) => {
+    if (w.updatedAt !== undefined && w.synced !== undefined) {
+      return w;
+    }
+    return {
+      ...w,
+      updatedAt: new Date().toISOString(),
+      synced: false,
+      deleted: false,
+    };
+  });
+
+  const combined = [...nextWeights, ...deleted];
+  await saveRawWeights(combined);
+}
+
+export async function tombstoneReading(id: string) {
+  const token = await AsyncStorage.getItem(DEVICE_TOKEN_KEY);
+  const raw = await loadRawReadings();
+  let next;
+  if (token) {
+    next = raw.map((r) =>
+      r.id === id
+        ? { ...r, deleted: true, synced: false, updatedAt: new Date().toISOString() }
+        : r
+    );
+  } else {
+    next = raw.filter((r) => r.id !== id);
+  }
+  await saveRawReadings(next);
+}
+
+export async function tombstoneWeight(id: string) {
+  const token = await AsyncStorage.getItem(DEVICE_TOKEN_KEY);
+  const raw = await loadRawWeights();
+  let next;
+  if (token) {
+    next = raw.map((w) =>
+      w.id === id
+        ? { ...w, deleted: true, synced: false, updatedAt: new Date().toISOString() }
+        : w
+    );
+  } else {
+    next = raw.filter((w) => w.id !== id);
+  }
+  await saveRawWeights(next);
 }
 
 export async function loadWeightUnit(): Promise<WeightUnit> {
