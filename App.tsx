@@ -753,42 +753,6 @@ export default function App() {
                   </View>
                 </View>
 
-                <View style={styles.card}>
-                  <Text style={styles.cardTitle}>Database Sync</Text>
-                  <Text style={styles.settingHint}>
-                    Backup your readings automatically to your Spring Boot database.
-                  </Text>
-                  <View style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View>
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>
-                        Status: <Text style={{ color: syncState === 'synced' ? '#34C759' : syncState === 'error' ? '#FF3B30' : colors.text }}>
-                          {syncState.toUpperCase()}
-                        </Text>
-                      </Text>
-                      <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>
-                        Last synced: {lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Never'}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: colors.accent,
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderRadius: 6,
-                        opacity: syncState === 'syncing' ? 0.6 : 1,
-                      }}
-                      disabled={syncState === 'syncing'}
-                      onPress={() => syncData().catch(() => {})}
-                    >
-                      {syncState === 'syncing' ? (
-                        <ActivityIndicator size="small" color="#FFF" />
-                      ) : (
-                        <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 13 }}>Sync Now</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
                 {reminderProblem === 'denied' && (
                   <Text style={styles.notice}>
                     Notifications are blocked for this app. Enable them in your device
@@ -825,6 +789,42 @@ export default function App() {
                   <Text style={styles.tip}>· Rest your arm on a table, cuff level with your heart.</Text>
                   <Text style={styles.tip}>· Measure at the same time each day, before food or caffeine.</Text>
                   <Text style={styles.tip}>· Take two readings a minute apart and log the second.</Text>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Database Sync</Text>
+                  <Text style={styles.settingHint}>
+                    Backup your readings automatically to your database.
+                  </Text>
+                  <View style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>
+                        Status: <Text style={{ color: syncState === 'synced' ? '#34C759' : syncState === 'error' ? '#FF3B30' : colors.text }}>
+                          {syncState.toUpperCase()}
+                        </Text>
+                      </Text>
+                      <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>
+                        Last synced: {lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Never'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: colors.accent,
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 6,
+                        opacity: syncState === 'syncing' ? 0.6 : 1,
+                      }}
+                      disabled={syncState === 'syncing'}
+                      onPress={() => syncData().catch(() => {})}
+                    >
+                      {syncState === 'syncing' ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                      ) : (
+                        <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 13 }}>Sync Now</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </>
             )}
