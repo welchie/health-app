@@ -1,4 +1,4 @@
-import { Reading } from './types';
+import { BloodPressureReading } from './types';
 
 export type Category =
   | 'Low'
@@ -21,7 +21,7 @@ export function categorise(systolic: number, diastolic: number): Category {
   return 'Normal';
 }
 
-export function averageOf(readings: Reading[]) {
+export function averageOf(readings: BloodPressureReading[]) {
   if (readings.length === 0) return null;
   const sum = readings.reduce(
     (acc, r) => ({

@@ -3,7 +3,7 @@ import {
   defaultReminder,
   defaultWeightReminder,
   defaultWeightUnit,
-  Reading,
+  BloodPressureReading,
   ReminderSettings,
   WeightEntry,
   WeightUnit,
@@ -21,18 +21,18 @@ const WEIGHT_REMINDER_KEY = 'health-app/weight-reminder/v1';
 const MEDICATIONS_KEY = 'health-app/medications/v1';
 
 
-export async function loadReadings(): Promise<Reading[]> {
+export async function loadReadings(): Promise<BloodPressureReading[]> {
   const raw = await AsyncStorage.getItem(READINGS_KEY);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as Reading[]) : [];
+    return Array.isArray(parsed) ? (parsed as BloodPressureReading[]) : [];
   } catch {
     return [];
   }
 }
 
-export async function saveReadings(readings: Reading[]) {
+export async function saveReadings(readings: BloodPressureReading[]) {
   await AsyncStorage.setItem(READINGS_KEY, JSON.stringify(readings));
 }
 

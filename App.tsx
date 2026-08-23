@@ -57,7 +57,7 @@ import {
   defaultReminder,
   defaultWeightReminder,
   defaultWeightUnit,
-  Reading,
+  BloodPressureReading,
   ReminderSettings,
   WeightEntry,
   WeightUnit,
@@ -84,7 +84,7 @@ const problemFrom = (result: ScheduleResult): ReminderProblem =>
 type Range = 7 | 30 | 0; // 0 means everything
 
 export default function App() {
-  const [readings, setReadings] = useState<Reading[]>([]);
+  const [readings, setReadings] = useState<BloodPressureReading[]>([]);
   const [reminder, setReminder] = useState<ReminderSettings>(defaultReminder);
   const [weightReminder, setWeightReminder] =
     useState<ReminderSettings>(defaultWeightReminder);
@@ -156,7 +156,7 @@ export default function App() {
   const average = useMemo(() => averageOf(inRange), [inRange]);
   const latest = newest[0];
 
-  const addReading = async (reading: Omit<Reading, 'id'>) => {
+  const addReading = async (reading: Omit<BloodPressureReading, 'id'>) => {
     const next = [...readings, { ...reading, id: `${Date.now()}` }];
     setReadings(next);
     await saveReadings(next);
@@ -783,7 +783,7 @@ export default function App() {
   );
 }
 
-function LatestCard({ reading }: { reading: Reading }) {
+function LatestCard({ reading }: { reading: BloodPressureReading }) {
   const category = categorise(reading.systolic, reading.diastolic);
   return (
     <View style={styles.card}>

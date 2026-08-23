@@ -9,11 +9,11 @@ import {
 } from 'react-native';
 import { categorise } from '../bp';
 import { categoryColors, colors } from '../theme';
-import { Reading } from '../types';
+import { BloodPressureReading } from '../types';
 import NumberField from './NumberField';
 
 type Props = {
-  onSave: (reading: Omit<Reading, 'id'>) => void;
+  onSave: (reading: Omit<BloodPressureReading, 'id'>) => void;
 };
 
 const RANGES = {

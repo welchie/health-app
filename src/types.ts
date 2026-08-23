@@ -1,4 +1,4 @@
-export type Reading = {
+export type BloodPressureReading = {
   id: string;
   /** ISO 8601 timestamp of when the reading was taken. */
   takenAt: string;

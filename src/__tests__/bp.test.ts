@@ -6,9 +6,9 @@ import {
   readingsWithinDays,
   sortByNewest,
 } from '../bp';
-import { Reading } from '../types';
+import { BloodPressureReading } from '../types';
 
-const reading = (over: Partial<Reading> = {}): Reading => ({
+const reading = (over: Partial<BloodPressureReading> = {}): BloodPressureReading => ({
   id: over.id ?? 'r1',
   takenAt: over.takenAt ?? new Date().toISOString(),
   systolic: over.systolic ?? 120,

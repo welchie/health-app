@@ -3,17 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import App from '../../App';
-import { Reading } from '../types';
+import { BloodPressureReading } from '../types';
 
 const mocked = Notifications as jest.Mocked<typeof Notifications>;
 
-const stored = (readings: Reading[]) =>
+const stored = (readings: BloodPressureReading[]) =>
   AsyncStorage.setItem('health-app/readings/v1', JSON.stringify(readings));
 
 const daysAgo = (days: number) =>
   new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-const history: Reading[] = [
+const history: BloodPressureReading[] = [
   { id: 'a', takenAt: daysAgo(40), systolic: 150, diastolic: 95, heartRate: 80 },
   { id: 'b', takenAt: daysAgo(3), systolic: 124, diastolic: 80, heartRate: 70 },
   { id: 'c', takenAt: daysAgo(1), systolic: 118, diastolic: 76, heartRate: 60 },
