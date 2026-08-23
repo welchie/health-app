@@ -64,6 +64,54 @@ flowchart LR
 
 ---
 
+## Data Models
+
+The key data models used within the application are defined in [src/types.ts](file:///Users/chriswelch/workspace/health-app/src/types.ts).
+
+### Blood Pressure Reading (`BloodPressureReading`)
+Stores logs of blood pressure measurements and heart rates.
+*   **Storage Key:** `health-app/readings/v1`
+*   **Structure:**
+    ```typescript
+    export type BloodPressureReading = {
+      id: string;               // Unique string (Date.now() timestamp)
+      takenAt: string;          // ISO 8601 timestamp of when taken
+      systolic: number;         // Systolic pressure in mmHg
+      diastolic: number;        // Diastolic pressure in mmHg
+      heartRate: number | null; // Heart rate in bpm (optional)
+      note?: string;            // Optional free-text notes
+    };
+    ```
+
+### Weight Entry (`WeightEntry`)
+Stores weight logs. To prevent rounding errors or precision loss from repeatedly switching unit preferences, weights are stored strictly in whole grams.
+*   **Storage Key:** `health-app/weights/v1`
+*   **Structure:**
+    ```typescript
+    export type WeightEntry = {
+      id: string;
+      takenAt: string;          // ISO 8601 timestamp of when taken
+      grams: number;            // Weight in grams
+      note?: string;            // Optional free-text notes
+    };
+    ```
+
+### Medication Reminders (`MedicationReminder`)
+Stores configured medication reminder alerts.
+*   **Storage Key:** `health-app/medications/v1`
+*   **Structure:**
+    ```typescript
+    export type MedicationReminder = {
+      id: string;
+      name: string;             // Medication name
+      enabled: boolean;         // Active status
+      times: { hour: number; minute: number }[]; // Up to 3 times daily
+      instruction: string;      // Optional instructions (e.g. "After food")
+    };
+    ```
+
+---
+
 ## Notification Scheduling Lifecycle
 
 Reminders utilize local OS alarms. Since Android Expo Go SDK 53+ lacks support for `expo-notifications`, a runtime guard is used to lazily import the notification module only where supported, preserving core application functionality on Android Expo Go.
