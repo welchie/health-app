@@ -2,10 +2,10 @@ import React from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { categorise, formatWhen } from '../bp';
 import { categoryColors, colors } from '../theme';
-import { Reading } from '../types';
+import { BloodPressureReading } from '../types';
 
 type Props = {
-  readings: Reading[];
+  readings: BloodPressureReading[];
   onDelete: (id: string) => void;
 };
 
@@ -14,7 +14,7 @@ export default function ReadingList({ readings, onDelete }: Props) {
     return <Text style={styles.empty}>Nothing logged yet.</Text>;
   }
 
-  const confirmDelete = (reading: Reading) =>
+  const confirmDelete = (reading: BloodPressureReading) =>
     Alert.alert(
       'Delete reading?',
       `${reading.systolic}/${reading.diastolic} on ${formatWhen(reading.takenAt)}`,

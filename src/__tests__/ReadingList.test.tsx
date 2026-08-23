@@ -2,9 +2,9 @@ import React from 'react';
 import { Alert } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import ReadingList from '../components/ReadingList';
-import { Reading } from '../types';
+import { BloodPressureReading } from '../types';
 
-const readings: Reading[] = [
+const readings: BloodPressureReading[] = [
   {
     id: '1',
     takenAt: new Date().toISOString(),

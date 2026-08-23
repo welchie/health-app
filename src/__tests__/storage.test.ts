@@ -16,12 +16,12 @@ import {
 import {
   defaultReminder,
   defaultWeightReminder,
-  Reading,
+  BloodPressureReading,
   WeightEntry,
   MedicationReminder,
 } from '../types';
 
-const sample: Reading[] = [
+const sample: BloodPressureReading[] = [
   { id: '1', takenAt: '2026-08-01T08:00:00.000Z', systolic: 122, diastolic: 79, heartRate: 68 },
 ];
 
