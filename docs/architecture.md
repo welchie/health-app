@@ -80,6 +80,11 @@ Stores logs of blood pressure measurements and heart rates.
       diastolic: number;        // Diastolic pressure in mmHg
       heartRate: number | null; // Heart rate in bpm (optional)
       note?: string;            // Optional free-text notes
+      
+      // Sync fields
+      updatedAt?: string;       // ISO 8601 timestamp of last edit
+      synced?: boolean;         // Sync status flag
+      deleted?: boolean;        // Tombstone flag for offline delete
     };
     ```
 
@@ -93,6 +98,11 @@ Stores weight logs. To prevent rounding errors or precision loss from repeatedly
       takenAt: string;          // ISO 8601 timestamp of when taken
       grams: number;            // Weight in grams
       note?: string;            // Optional free-text notes
+      
+      // Sync fields
+      updatedAt?: string;       // ISO 8601 timestamp of last edit
+      synced?: boolean;         // Sync status flag
+      deleted?: boolean;        // Tombstone flag for offline delete
     };
     ```
 
@@ -145,3 +155,40 @@ sequenceDiagram
         end
     end
 ```
+
+---
+
+## Backend Synchronization
+
+The application features a client-side **Offline-First Synchronization Engine** to backup and sync blood pressure and weight logs to a Spring Boot database.
+
+### Sync Lifecycle Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as App (React Native)
+    participant Storage as AsyncStorage
+    participant API as Spring Boot Backend
+
+    App->>Storage: Check for device_token
+    alt Token does not exist
+        App->>API: POST /api/v1/devices (Register device)
+        API->>API: Generate secure random UUID device token
+        API-->>App: Return { deviceToken: "uuid-xxxx" }
+        App->>Storage: Save deviceToken
+    end
+    Note over App, API: Sync Request (Background or Manual)
+    App->>Storage: Load unsynced logs & tombstones (synced = false)
+    App->>API: POST /api/v1/sync (X-Device-Token: uuid-xxxx)
+    API->>API: Perform Last Write Wins (LWW) merge
+    API-->>App: Return updated remote logs & server syncTime
+    App->>Storage: Save merged logs (synced = true)
+    App->>Storage: Purge successfully synced tombstones
+```
+
+### Sync Details & Mechanics
+1.  **Anonymous Device Token:** On first sync, the app fetches a secure UUID token from `POST /devices`. All future API calls are authenticated using the `X-Device-Token` HTTP header, enabling secure personal backups without user sign-up forms.
+2.  **Last Write Wins (LWW):** Conflicts are resolved by comparing `updatedAt` (or `takenAt` for legacy records). The version with the more recent timestamp wins.
+3.  **Tombstone Purging:** Deleted records are marked locally with `deleted: true` (hidden from user views). Once the backend registers the deletion, the tombstone is purged from AsyncStorage.
+

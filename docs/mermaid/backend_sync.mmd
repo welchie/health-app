@@ -1,0 +1,20 @@
+sequenceDiagram
+    autonumber
+    participant App as App (React Native)
+    participant Storage as AsyncStorage
+    participant API as Spring Boot Backend
+
+    App->>Storage: Check for device_token
+    alt Token does not exist
+        App->>API: POST /api/v1/devices (Register device)
+        API->>API: Generate secure random UUID device token
+        API-->>App: Return { deviceToken: "uuid-xxxx" }
+        App->>Storage: Save deviceToken
+    end
+    Note over App, API: Sync Request (Background or Manual)
+    App->>Storage: Load unsynced logs & tombstones (synced = false)
+    App->>API: POST /api/v1/sync (X-Device-Token: uuid-xxxx)
+    API->>API: Perform Last Write Wins (LWW) merge
+    API-->>App: Return updated remote logs & server syncTime
+    App->>Storage: Save merged logs (synced = true)
+    App->>Storage: Purge successfully synced tombstones
