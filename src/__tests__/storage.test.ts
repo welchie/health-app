@@ -22,7 +22,7 @@ import {
 } from '../types';
 
 const sample: BloodPressureReading[] = [
-  { id: '1', takenAt: '2026-08-01T08:00:00.000Z', systolic: 122, diastolic: 79, heartRate: 68 },
+  { id: '1', takenAt: '2026-08-01T08:00:00.000Z', systolic: 122, diastolic: 79, heartRate: 68, updatedAt: '2026-08-01T08:00:00.000Z', synced: false, deleted: false },
 ];
 
 beforeEach(async () => {
@@ -76,7 +76,7 @@ describe('reminder storage', () => {
 });
 
 const weights: WeightEntry[] = [
-  { id: 'w1', takenAt: '2026-08-01T07:30:00.000Z', grams: 81193 },
+  { id: 'w1', takenAt: '2026-08-01T07:30:00.000Z', grams: 81193, updatedAt: '2026-08-01T07:30:00.000Z', synced: false, deleted: false },
 ];
 
 describe('weight storage', () => {

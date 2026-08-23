@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -51,7 +52,10 @@ import {
   saveWeightUnit,
   loadMedications,
   saveMedications,
+  tombstoneReading,
+  tombstoneWeight,
 } from './src/storage';
+import { syncData, subscribeToSync, initSyncState, SyncState } from './src/sync';
 import { categoryColors, colors } from './src/theme';
 import {
   defaultReminder,
@@ -100,6 +104,36 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('summary');
   const [metric, setMetric] = useState<Metric>('bp');
   const [range, setRange] = useState<Range>(30);
+  const [syncState, setSyncState] = useState<SyncState>('idle');
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToSync((state, time) => {
+      setSyncState(state);
+      setLastSyncTime(time);
+      if (state === 'synced') {
+        (async () => {
+          const [storedReadings, storedWeights] = await Promise.all([
+            loadReadings(),
+            loadWeights(),
+          ]);
+          setReadings(storedReadings);
+          setWeights(storedWeights);
+        })();
+      }
+    });
+
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        syncData().catch(() => {});
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -125,6 +159,11 @@ export default function App() {
       setWeightReminder(storedWeightReminder);
       setMedications(storedMedications);
       setLoading(false);
+
+      await initSyncState();
+      if (process.env.NODE_ENV !== 'test') {
+        syncData().catch(() => {});
+      }
 
       // Re-arm on launch: the OS drops scheduled notifications after some
       // events (reinstall, permission changes), and rescheduling is idempotent.
@@ -160,24 +199,36 @@ export default function App() {
     const next = [...readings, { ...reading, id: `${Date.now()}` }];
     setReadings(next);
     await saveReadings(next);
+    if (process.env.NODE_ENV !== 'test') {
+      syncData().catch(() => {});
+    }
   };
 
   const deleteReading = async (id: string) => {
-    const next = readings.filter((r) => r.id !== id);
+    await tombstoneReading(id);
+    const next = await loadReadings();
     setReadings(next);
-    await saveReadings(next);
+    if (process.env.NODE_ENV !== 'test') {
+      syncData().catch(() => {});
+    }
   };
 
   const addWeight = async (entry: Omit<WeightEntry, 'id'>) => {
     const next = [...weights, { ...entry, id: `${Date.now()}` }];
     setWeights(next);
     await saveWeights(next);
+    if (process.env.NODE_ENV !== 'test') {
+      syncData().catch(() => {});
+    }
   };
 
   const deleteWeight = async (id: string) => {
-    const next = weights.filter((w) => w.id !== id);
+    await tombstoneWeight(id);
+    const next = await loadWeights();
     setWeights(next);
-    await saveWeights(next);
+    if (process.env.NODE_ENV !== 'test') {
+      syncData().catch(() => {});
+    }
   };
 
   /** Display-only: stored grams are untouched by a unit change. */
@@ -738,6 +789,42 @@ export default function App() {
                   <Text style={styles.tip}>· Rest your arm on a table, cuff level with your heart.</Text>
                   <Text style={styles.tip}>· Measure at the same time each day, before food or caffeine.</Text>
                   <Text style={styles.tip}>· Take two readings a minute apart and log the second.</Text>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Database Sync</Text>
+                  <Text style={styles.settingHint}>
+                    Backup your readings automatically to your database.
+                  </Text>
+                  <View style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>
+                        Status: <Text style={{ color: syncState === 'synced' ? '#34C759' : syncState === 'error' ? '#FF3B30' : colors.text }}>
+                          {syncState.toUpperCase()}
+                        </Text>
+                      </Text>
+                      <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>
+                        Last synced: {lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Never'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: colors.accent,
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 6,
+                        opacity: syncState === 'syncing' ? 0.6 : 1,
+                      }}
+                      disabled={syncState === 'syncing'}
+                      onPress={() => syncData().catch(() => {})}
+                    >
+                      {syncState === 'syncing' ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                      ) : (
+                        <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 13 }}>Sync Now</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </>
             )}
