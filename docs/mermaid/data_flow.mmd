@@ -1,0 +1,18 @@
+flowchart LR
+    subgraph UI ["UI Layer (React Native Components)"]
+        Forms["ReadingForm / WeightForm / MedicationForm"]
+        Lists["ReadingList / WeightList / MedicationList"]
+    end
+
+    subgraph State ["Application State (App.tsx)"]
+        StateVars["State Variables (readings, weights, medications, reminderProblem)"]
+    end
+
+    subgraph Storage ["Storage Layer (src/storage.ts)"]
+        AsyncStorage["AsyncStorage (device only)"]
+    end
+
+    Forms -- "On Save / Submit" --> StateVars
+    StateVars -- "serialize & write" --> AsyncStorage
+    AsyncStorage -- "load & parse (on App mount)" --> StateVars
+    StateVars -- "render lists & summary" --> Lists
