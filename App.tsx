@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   AppState,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -56,6 +57,7 @@ import {
   tombstoneWeight,
 } from './src/storage';
 import { syncData, subscribeToSync, initSyncState, SyncState } from './src/sync';
+import { getDeviceToken, getDashboardUrl } from './src/api';
 import { categoryColors, colors } from './src/theme';
 import {
   defaultReminder,
@@ -823,6 +825,31 @@ export default function App() {
                       ) : (
                         <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 13 }}>Sync Now</Text>
                       )}
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={{ marginTop: 14, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: colors.card,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                        borderRadius: 8,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      onPress={async () => {
+                        const token = await getDeviceToken();
+                        if (token) {
+                          Linking.openURL(getDashboardUrl(token)).catch(() => {});
+                        }
+                      }}
+                    >
+                      <Text style={{ color: colors.accent, fontWeight: '600', fontSize: 13 }}>
+                        Open Web Dashboard ↗
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
