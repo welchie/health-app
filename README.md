@@ -89,10 +89,10 @@ which metric you are looking at.
 | --- | --- |
 | **Log** | Enter a reading or a weight, and see the latest one — blood pressure banded (Normal / Elevated / High…) with a running average, weight with its change over the period |
 | **Trends** | Charts over 7 / 30 / all days — blood pressure and heart rate, or weight — plus the full history (long press a row to delete) |
-| **Settings** | Weight units, the daily blood pressure reminder, the weekly weigh-in reminder, and measurement tips |
+| **Meds** | Daily medication reminders with schedule times, active toggles, and intake instructions |
+| **Settings** | Weight units, daily BP reminders, weekly weigh-in reminders, database sync status, and measurement tips |
 
-Everything is stored with `AsyncStorage` on the device only — nothing is uploaded
-anywhere and there is no account.
+Data is stored offline-first with `AsyncStorage` on the device, with automatic background synchronization and secure backup to a backend database using anonymous device tokens without requiring user accounts.
 
 ### Weight units
 
@@ -110,7 +110,9 @@ pounds; a change is reported in the smaller unit (`-3.0 lb`, `-1.4 kg`) because
 | [App.tsx](App.tsx) | Screen composition, tabs, metric switcher, state, persistence wiring (insets via `react-native-safe-area-context`) |
 | [src/bp.ts](src/bp.ts) | Banding, averages, date-range filtering, formatting — the date helpers are generic over anything timestamped, so weights reuse them |
 | [src/weight.ts](src/weight.ts) | Gram/kg/stone conversion, formatting, averages and change |
-| [src/storage.ts](src/storage.ts) | AsyncStorage read/write, tolerant of corrupt data |
+| [src/storage.ts](src/storage.ts) | AsyncStorage read/write with sync metadata and tombstone support, tolerant of corrupt data |
+| [src/api.ts](src/api.ts) | Backend API client for anonymous device registration and sync payloads |
+| [src/sync.ts](src/sync.ts) | Offline-first sync engine: Last-Write-Wins merge, tombstone cleanup, and sync state listeners |
 | [src/notifications.ts](src/notifications.ts) | Permission handling and the per-kind daily/weekly schedules |
 | [src/components/TrendChart.tsx](src/components/TrendChart.tsx) | `react-native-svg` line chart with a touch readout, an adaptive axis step and a pluggable value format |
 | [src/components/NumberField.tsx](src/components/NumberField.tsx) | The numeric input shared by both entry forms |
@@ -120,6 +122,8 @@ pounds; a change is reported in the smaller unit (`-3.0 lb`, `-1.4 kg`) because
 | [src/components/WeightList.tsx](src/components/WeightList.tsx) | Weight history rows with per-entry change |
 | [src/components/ReminderCard.tsx](src/components/ReminderCard.tsx) | One reminder — switch, day picker for weekly, time picker |
 | [src/components/UnitChips.tsx](src/components/UnitChips.tsx) | The st/lb ↔ kg toggle |
+| [src/components/MedicationForm.tsx](src/components/MedicationForm.tsx) | Medication reminder creation and editing form |
+| [src/components/MedicationList.tsx](src/components/MedicationList.tsx) | Medication schedule list with enable/disable toggles |
 
 Systolic and diastolic share one mmHg axis; heart rate and weight each get their
 own chart rather than a second y-axis on a shared one. The chart picks its tick
@@ -132,12 +136,13 @@ while blood pressure keeps its familiar 10 mmHg ticks.
 npm test
 ```
 
-202 tests across fourteen suites (`jest-expo` + React Native Testing Library):
+226 tests across seventeen suites (`jest-expo` + React Native Testing Library):
 
 ### Registry and Lockfile Safety
 
 This project enforces the use of the public npm registry (`https://registry.npmjs.org/`) via the project-level `.npmrc`. A validation script (`scripts/check-lockfile.js`) is run automatically as part of `npm test` to prevent private registry URLs from being committed in `package-lock.json`.
 
+- `sync.test.ts` — device token registration, Last Write Wins merge, tombstone purging, and legacy data migration
 - `bp.test.ts` — band boundaries (119/79 vs 120/79 vs 130/80 …), averages with
   missing pulses, date-window filtering, ordering, date formatting
 - `weight.test.ts` — conversion round-trips, the stones rounding carry (13 st
@@ -155,6 +160,9 @@ This project enforces the use of the public npm registry (`https://registry.npmj
 - `ReadingForm.test.tsx` — validation (ranges, reversed numbers, non-digits),
   optional pulse and note, field reset
 - `ReadingList.test.tsx` — rendering, bands, delete confirmation both ways
+- `MedicationForm.test.tsx` — medication scheduling, name suggestions, and validation
+- `MedicationList.test.tsx` — medication cards, active toggles, and deletions
+- `TabIcon.test.tsx` — tab icon rendering across routes
 - `TrendChart.test.tsx` — empty states, one line per series, legend rules, touch
   readout including missing values, the adaptive axis step (0.2 for stones, still
   10 for mmHg), and compact-on-plot vs full-in-readout formatting
