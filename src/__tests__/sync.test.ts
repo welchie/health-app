@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { syncData, initSyncState, SyncState } from '../sync';
+import { getDashboardUrl } from '../api';
 import {
   saveRawReadings,
   loadReadings,
@@ -254,5 +255,11 @@ describe('syncData engine', () => {
     expect(rawWeights[0].grams).toBe(74500);
     expect(rawWeights[0].synced).toBe(true);
   });
+
+  it('generates proper web dashboard url with encoded token', () => {
+    const url = getDashboardUrl('mock-device-uuid');
+    expect(url).toContain('/?token=mock-device-uuid');
+  });
 });
+
 

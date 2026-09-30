@@ -5,6 +5,14 @@ import { BloodPressureReading, WeightEntry } from './types';
 export const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL || 'https://api.weewelchie.org/api/v1';
 
+/**
+ * Returns the web dashboard URL for a given device token.
+ */
+export function getDashboardUrl(token: string): string {
+  const origin = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+  return `${origin}/?token=${encodeURIComponent(token)}`;
+}
+
 const DEVICE_TOKEN_KEY = 'health-app/device-token/v1';
 
 export type SyncPayload = {
