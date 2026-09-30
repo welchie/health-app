@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BloodPressureReading, WeightEntry } from './types';
 
-// Replace with your local Spring Boot IP or hostname when running on a physical device.
-// e.g. "http://192.168.1.50:8080/api/v1"
-export const API_BASE_URL = 'http://localhost:8080/api/v1';
+// Production sync API endpoint, overridable via EXPO_PUBLIC_API_URL for local development.
+export const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL || 'https://api.weewelchie.org/api/v1';
 
 const DEVICE_TOKEN_KEY = 'health-app/device-token/v1';
 

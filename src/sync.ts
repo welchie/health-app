@@ -65,8 +65,20 @@ export async function syncData(): Promise<boolean> {
     const rawReadings = await loadRawReadings();
     const rawWeights = await loadRawWeights();
 
-    const localModifiedReadings = rawReadings.filter((r) => !r.synced);
-    const localModifiedWeights = rawWeights.filter((w) => !w.synced);
+    const localModifiedReadings = rawReadings
+      .filter((r) => !r.synced)
+      .map((r) => ({
+        ...r,
+        updatedAt: r.updatedAt || r.takenAt || new Date().toISOString(),
+        deleted: r.deleted ?? false,
+      }));
+    const localModifiedWeights = rawWeights
+      .filter((w) => !w.synced)
+      .map((w) => ({
+        ...w,
+        updatedAt: w.updatedAt || w.takenAt || new Date().toISOString(),
+        deleted: w.deleted ?? false,
+      }));
 
     const payload: SyncPayload = {
       readings: localModifiedReadings,
@@ -81,7 +93,12 @@ export async function syncData(): Promise<boolean> {
     let nextReadings = rawReadings.map((r) => {
       const wasUploaded = localModifiedReadings.some((m) => m.id === r.id);
       if (wasUploaded) {
-        return { ...r, synced: true };
+        return {
+          ...r,
+          updatedAt: r.updatedAt || r.takenAt || new Date().toISOString(),
+          synced: true,
+          deleted: r.deleted ?? false,
+        };
       }
       return r;
     });
@@ -91,14 +108,20 @@ export async function syncData(): Promise<boolean> {
 
     response.readings.forEach((remote) => {
       const idx = nextReadings.findIndex((r) => r.id === remote.id);
+      const normalizedRemote: BloodPressureReading = {
+        ...remote,
+        updatedAt: remote.updatedAt || remote.takenAt,
+        deleted: remote.deleted ?? false,
+        synced: true,
+      };
       if (idx >= 0) {
         const local = nextReadings[idx];
-        if (getUpdatedAtTime(remote) >= getUpdatedAtTime(local)) {
-          nextReadings[idx] = { ...remote, synced: true };
+        if (getUpdatedAtTime(normalizedRemote) >= getUpdatedAtTime(local)) {
+          nextReadings[idx] = normalizedRemote;
         }
       } else {
-        if (!remote.deleted) {
-          nextReadings.push({ ...remote, synced: true });
+        if (!normalizedRemote.deleted) {
+          nextReadings.push(normalizedRemote);
         }
       }
     });
@@ -107,7 +130,12 @@ export async function syncData(): Promise<boolean> {
     let nextWeights = rawWeights.map((w) => {
       const wasUploaded = localModifiedWeights.some((m) => m.id === w.id);
       if (wasUploaded) {
-        return { ...w, synced: true };
+        return {
+          ...w,
+          updatedAt: w.updatedAt || w.takenAt || new Date().toISOString(),
+          synced: true,
+          deleted: w.deleted ?? false,
+        };
       }
       return w;
     });
@@ -117,14 +145,20 @@ export async function syncData(): Promise<boolean> {
 
     response.weights.forEach((remote) => {
       const idx = nextWeights.findIndex((w) => w.id === remote.id);
+      const normalizedRemote: WeightEntry = {
+        ...remote,
+        updatedAt: remote.updatedAt || remote.takenAt,
+        deleted: remote.deleted ?? false,
+        synced: true,
+      };
       if (idx >= 0) {
         const local = nextWeights[idx];
-        if (getUpdatedAtTime(remote) >= getUpdatedAtTime(local)) {
-          nextWeights[idx] = { ...remote, synced: true };
+        if (getUpdatedAtTime(normalizedRemote) >= getUpdatedAtTime(local)) {
+          nextWeights[idx] = normalizedRemote;
         }
       } else {
-        if (!remote.deleted) {
-          nextWeights.push({ ...remote, synced: true });
+        if (!normalizedRemote.deleted) {
+          nextWeights.push(normalizedRemote);
         }
       }
     });

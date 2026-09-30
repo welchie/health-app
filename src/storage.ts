@@ -47,12 +47,12 @@ export async function saveReadings(readings: BloodPressureReading[]) {
   const deleted = raw.filter((r) => r.deleted);
 
   const nextReadings = readings.map((r) => {
-    if (r.updatedAt !== undefined && r.synced !== undefined) {
+    if (r.updatedAt && r.synced !== undefined) {
       return r;
     }
     return {
       ...r,
-      updatedAt: new Date().toISOString(),
+      updatedAt: r.updatedAt || r.takenAt || new Date().toISOString(),
       synced: false,
       deleted: false,
     };
@@ -101,12 +101,12 @@ export async function saveWeights(weights: WeightEntry[]) {
   const deleted = raw.filter((w) => w.deleted);
 
   const nextWeights = weights.map((w) => {
-    if (w.updatedAt !== undefined && w.synced !== undefined) {
+    if (w.updatedAt && w.synced !== undefined) {
       return w;
     }
     return {
       ...w,
-      updatedAt: new Date().toISOString(),
+      updatedAt: w.updatedAt || w.takenAt || new Date().toISOString(),
       synced: false,
       deleted: false,
     };

@@ -189,6 +189,9 @@ sequenceDiagram
 
 ### Sync Details & Mechanics
 1.  **Anonymous Device Token:** On first sync, the app fetches a secure UUID token from `POST /devices`. All future API calls are authenticated using the `X-Device-Token` HTTP header, enabling secure personal backups without user sign-up forms.
-2.  **Last Write Wins (LWW):** Conflicts are resolved by comparing `updatedAt` (or `takenAt` for legacy records). The version with the more recent timestamp wins.
-3.  **Tombstone Purging:** Deleted records are marked locally with `deleted: true` (hidden from user views). Once the backend registers the deletion, the tombstone is purged from AsyncStorage.
+2.  **API Target Configuration:** Defaults to the production service `https://api.weewelchie.org/api/v1`, with optional local or staging overrides via the `EXPO_PUBLIC_API_URL` environment variable.
+3.  **Local Data Preservation & Legacy Migration:** Records created prior to backend sync support without `synced` or `updatedAt` metadata are preserved locally, backfilled with valid timestamps (defaulting to `takenAt`), and uploaded on the initial sync.
+4.  **Last Write Wins (LWW):** Conflicts are resolved by comparing `updatedAt` (or `takenAt` for legacy records). The version with the more recent timestamp wins.
+5.  **Tombstone Purging:** Deleted records are marked locally with `deleted: true` (hidden from user views). Once the backend registers the deletion, the tombstone is purged from AsyncStorage.
+
 

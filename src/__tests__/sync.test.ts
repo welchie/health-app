@@ -191,4 +191,68 @@ describe('syncData engine', () => {
     expect(raw).toHaveLength(1);
     expect(raw[0].id).toBe('active-1');
   });
+
+  it('preserves and uploads legacy data that lacks sync metadata', async () => {
+    await AsyncStorage.setItem('health-app/device-token/v1', 'existing-token');
+
+    // Simulate pre-sync legacy storage: no synced flag, no updatedAt, no deleted
+    const legacyReading = {
+      id: 'legacy-reading-1',
+      takenAt: '2026-08-01T08:00:00.000Z',
+      systolic: 125,
+      diastolic: 82,
+      heartRate: 68,
+      note: 'Legacy record',
+    } as BloodPressureReading;
+
+    const legacyWeight = {
+      id: 'legacy-weight-1',
+      takenAt: '2026-08-01T08:30:00.000Z',
+      grams: 74500,
+    } as WeightEntry;
+
+    await AsyncStorage.setItem('health-app/readings/v1', JSON.stringify([legacyReading]));
+    await AsyncStorage.setItem('health-app/weights/v1', JSON.stringify([legacyWeight]));
+
+    // Mock successful sync response
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readings: [],
+        weights: [],
+        syncTime: '2026-08-01T09:00:00.000Z',
+      }),
+    });
+
+    const result = await syncData();
+    expect(result).toBe(true);
+
+    // Verify fetch payload included the legacy records with normalized fields
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const syncPayload = JSON.parse(mockFetch.mock.calls[0][1].body);
+
+    expect(syncPayload.readings).toHaveLength(1);
+    expect(syncPayload.readings[0].id).toBe('legacy-reading-1');
+    expect(syncPayload.readings[0].updatedAt).toBe('2026-08-01T08:00:00.000Z');
+    expect(syncPayload.readings[0].deleted).toBe(false);
+
+    expect(syncPayload.weights).toHaveLength(1);
+    expect(syncPayload.weights[0].id).toBe('legacy-weight-1');
+    expect(syncPayload.weights[0].updatedAt).toBe('2026-08-01T08:30:00.000Z');
+    expect(syncPayload.weights[0].deleted).toBe(false);
+
+    // Verify local records are kept in storage and now marked as synced
+    const rawReadings = await loadRawReadings();
+    expect(rawReadings).toHaveLength(1);
+    expect(rawReadings[0].id).toBe('legacy-reading-1');
+    expect(rawReadings[0].systolic).toBe(125);
+    expect(rawReadings[0].synced).toBe(true);
+
+    const rawWeights = await loadRawWeights();
+    expect(rawWeights).toHaveLength(1);
+    expect(rawWeights[0].id).toBe('legacy-weight-1');
+    expect(rawWeights[0].grams).toBe(74500);
+    expect(rawWeights[0].synced).toBe(true);
+  });
 });
+
