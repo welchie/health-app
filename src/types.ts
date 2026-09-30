@@ -6,6 +6,11 @@ export type BloodPressureReading = {
   diastolic: number;
   heartRate: number | null;
   note?: string;
+  
+  // Sync fields
+  updatedAt?: string;
+  synced?: boolean;
+  deleted?: boolean;
 };
 
 /**
@@ -20,6 +25,11 @@ export type WeightEntry = {
   takenAt: string;
   grams: number;
   note?: string;
+
+  // Sync fields
+  updatedAt?: string;
+  synced?: boolean;
+  deleted?: boolean;
 };
 
 export type WeightUnit = 'kg' | 'st_lb';
